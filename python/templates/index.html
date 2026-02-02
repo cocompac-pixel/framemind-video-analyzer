@@ -1,0 +1,4415 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Video Analyzer</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        :root {
+            --bg-primary: #FFFFFF;
+            --bg-secondary: #F7F7F8;
+            --bg-tertiary: #EFEFEF;
+            --text-primary: #18181B;
+            --text-secondary: #71717A;
+            --text-tertiary: #A1A1AA;
+            --border: #E4E4E7;
+            --border-hover: #D4D4D8;
+            --accent: #18181B;
+            --accent-hover: #27272A;
+            --gold: #CA8A04;
+            --gold-bg: #FEF9C3;
+            --gold-bright: #EAB308;
+            --silver: #71717A;
+            --silver-bg: #F4F4F5;
+            --green: #16A34A;
+            --green-bg: #DCFCE7;
+            --sidebar-width: 280px;
+
+            /* Colores para timeline - Azul monocromático */
+            --tier-gold: #3B82F6;      /* Azul brillante - usar */
+            --tier-silver: #93C5FD;    /* Azul claro - revisar */
+            --tier-bronze: #CBD5E1;    /* Gris azulado - requiere trabajo */
+            --tier-discard: #E2E8F0;   /* Gris muy claro - no usable */
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: var(--bg-secondary);
+            color: var(--text-primary);
+            line-height: 1.5;
+            -webkit-font-smoothing: antialiased;
+            min-height: 100vh;
+        }
+
+        /* Layout */
+        .app {
+            display: flex;
+            min-height: 100vh;
+        }
+
+        /* Sidebar - ElevenLabs Style */
+        .sidebar {
+            width: var(--sidebar-width);
+            background: #FAFAFA;
+            border-right: 1px solid #E5E5E5;
+            display: flex;
+            flex-direction: column;
+            position: fixed;
+            height: 100vh;
+            overflow-y: auto;
+        }
+
+        .sidebar-header {
+            padding: 16px 12px;
+        }
+
+        .logo {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            padding: 4px 8px;
+            margin-bottom: 20px;
+        }
+
+        .logo-icon {
+            width: 24px;
+            height: 24px;
+            background: linear-gradient(135deg, #3B82F6 0%, #1E40AF 100%);
+            border-radius: 6px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            font-weight: 700;
+            font-size: 10px;
+        }
+
+        .logo-text {
+            font-size: 16px;
+            font-weight: 600;
+            color: #171717;
+            letter-spacing: -0.3px;
+        }
+
+        .btn-new-project {
+            width: 100%;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            padding: 10px 12px;
+            font-size: 14px;
+            font-weight: 500;
+            border-radius: 8px;
+            cursor: pointer;
+            transition: all 0.15s ease;
+            border: 1px solid #E5E5E5;
+            background: white;
+            color: #171717;
+            justify-content: flex-start;
+        }
+
+        .btn-new-project:hover {
+            background: #F5F5F5;
+            border-color: #D4D4D4;
+        }
+
+        .btn-new-project svg {
+            opacity: 0.6;
+        }
+
+        /* Projects list in sidebar */
+        .sidebar-projects {
+            flex: 1;
+            padding: 0 8px;
+            overflow-y: auto;
+        }
+
+        .sidebar-section-title {
+            font-size: 12px;
+            font-weight: 500;
+            color: #737373;
+            padding: 20px 8px 8px 8px;
+        }
+
+        .project-item {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            padding: 8px 10px;
+            border-radius: 8px;
+            cursor: pointer;
+            transition: all 0.15s ease;
+            margin-bottom: 1px;
+        }
+
+        .project-item:hover {
+            background: #F0F0F0;
+        }
+
+        .project-item.active {
+            background: #EBEBEB;
+        }
+
+        .project-item-icon {
+            width: 20px;
+            height: 20px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            flex-shrink: 0;
+            color: #737373;
+        }
+
+        .project-item.active .project-item-icon {
+            color: #171717;
+        }
+
+        .project-item-info {
+            flex: 1;
+            min-width: 0;
+        }
+
+        .project-item-name {
+            font-size: 14px;
+            font-weight: 500;
+            color: #171717;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+
+        .project-item-rename-input {
+            font-size: 14px;
+            font-weight: 500;
+            color: #171717;
+            background: white;
+            border: 2px solid var(--accent);
+            border-radius: 4px;
+            padding: 2px 6px;
+            width: 100%;
+            outline: none;
+        }
+
+        .project-item-meta {
+            display: none;
+        }
+
+        .project-item-badge {
+            font-size: 11px;
+            font-weight: 500;
+            color: #737373;
+            background: #E5E5E5;
+            padding: 2px 6px;
+            border-radius: 4px;
+        }
+
+        .project-item.active .project-item-badge {
+            background: #D4D4D4;
+        }
+
+        .gold-indicator {
+            display: none;
+        }
+
+        /* Sidebar footer */
+        .sidebar-footer {
+            padding: 8px;
+            border-top: 1px solid #E5E5E5;
+            margin-top: auto;
+        }
+
+        .nav-item {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            padding: 8px 10px;
+            border-radius: 8px;
+            color: #525252;
+            text-decoration: none;
+            font-size: 14px;
+            font-weight: 500;
+            cursor: pointer;
+            transition: all 0.15s ease;
+        }
+
+        .nav-item:hover {
+            background: #F0F0F0;
+            color: #171717;
+        }
+
+        .nav-item svg {
+            width: 18px;
+            height: 18px;
+            opacity: 0.7;
+        }
+
+        /* Main content */
+        .main {
+            flex: 1;
+            margin-left: var(--sidebar-width);
+            padding: 32px 40px;
+            max-width: 1100px;
+        }
+
+        /* Empty state for no project selected */
+        .empty-main {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            height: calc(100vh - 100px);
+            text-align: center;
+        }
+
+        .empty-icon {
+            font-size: 64px;
+            margin-bottom: 24px;
+            opacity: 0.5;
+        }
+
+        .empty-title {
+            font-size: 20px;
+            font-weight: 600;
+            color: var(--text-primary);
+            margin-bottom: 8px;
+        }
+
+        .empty-desc {
+            font-size: 15px;
+            color: var(--text-secondary);
+            margin-bottom: 24px;
+        }
+
+        /* Project View */
+        .project-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-start;
+            margin-bottom: 32px;
+        }
+
+        .project-title {
+            font-size: 28px;
+            font-weight: 600;
+            color: var(--text-primary);
+            margin-bottom: 8px;
+        }
+
+        .project-stats-inline {
+            display: flex;
+            gap: 20px;
+            font-size: 14px;
+            color: var(--text-secondary);
+        }
+
+        .project-stats-inline .stat {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+
+        .project-stats-inline .stat strong {
+            color: var(--text-primary);
+            font-weight: 600;
+        }
+
+        .project-stats-inline .gold {
+            color: var(--gold);
+        }
+
+        .project-stats-inline .silver {
+            color: var(--silver);
+        }
+
+        /* Header actions container */
+        .header-actions {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+
+        /* Import button */
+        .btn-import {
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            padding: 12px 20px;
+            font-size: 14px;
+            font-weight: 600;
+            border-radius: 10px;
+            cursor: pointer;
+            transition: all 0.15s ease;
+            border: 1px solid var(--border);
+            background: var(--bg-primary);
+            color: var(--text-primary);
+        }
+
+        .btn-import:hover {
+            background: var(--bg-secondary);
+            border-color: var(--border-hover);
+        }
+
+        .btn-import svg {
+            opacity: 0.7;
+        }
+
+        /* Export button - PROMINENT */
+        .btn-export {
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            padding: 12px 20px;
+            font-size: 14px;
+            font-weight: 600;
+            border-radius: 10px;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            border: none;
+            background: linear-gradient(135deg, #3B82F6 0%, #1E40AF 100%);
+            color: white;
+            box-shadow: 0 2px 8px rgba(59, 130, 246, 0.3);
+        }
+
+        .btn-export:hover {
+            transform: translateY(-1px);
+            box-shadow: 0 4px 12px rgba(59, 130, 246, 0.4);
+        }
+
+        .btn-export:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+            transform: none;
+            box-shadow: none;
+        }
+
+        .btn-export .count {
+            background: rgba(255,255,255,0.3);
+            padding: 2px 8px;
+            border-radius: 6px;
+            font-size: 12px;
+        }
+
+        /* Secondary export button (selection) */
+        .btn-export-selection {
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            padding: 12px 20px;
+            font-size: 14px;
+            font-weight: 600;
+            border-radius: 10px;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            background: transparent;
+            color: var(--accent);
+            border: 1px solid var(--accent);
+        }
+
+        .btn-export-selection:hover {
+            background: rgba(59, 130, 246, 0.1);
+        }
+
+        .btn-export-selection .count {
+            background: var(--accent);
+            color: white;
+            padding: 2px 8px;
+            border-radius: 6px;
+            font-size: 12px;
+        }
+
+        /* Upload zone (hidden, only used for drag overlay) */
+        .upload-zone {
+            display: none;
+            background: var(--bg-primary);
+            border: 2px dashed var(--border);
+            border-radius: 16px;
+            padding: 40px;
+            text-align: center;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            margin-bottom: 32px;
+        }
+
+        .upload-zone:hover,
+        .upload-zone.drag-over {
+            border-color: var(--accent);
+            background: var(--bg-secondary);
+        }
+
+        .upload-zone-icon {
+            font-size: 40px;
+            margin-bottom: 12px;
+            opacity: 0.6;
+        }
+
+        .upload-zone-title {
+            font-size: 16px;
+            font-weight: 600;
+            color: var(--text-primary);
+            margin-bottom: 4px;
+        }
+
+        .upload-zone-desc {
+            font-size: 14px;
+            color: var(--text-secondary);
+        }
+
+        .upload-input {
+            display: none;
+        }
+
+        /* Filters & toolbar */
+        .clips-toolbar {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 20px;
+            gap: 16px;
+        }
+
+        .filter-pills {
+            display: flex;
+            gap: 8px;
+        }
+
+        .filter-pill {
+            padding: 8px 16px;
+            font-size: 13px;
+            font-weight: 500;
+            color: var(--text-secondary);
+            background: var(--bg-primary);
+            border: 1px solid var(--border);
+            border-radius: 20px;
+            cursor: pointer;
+            transition: all 0.15s ease;
+        }
+
+        .filter-pill:hover {
+            border-color: var(--border-hover);
+        }
+
+        .filter-pill.active {
+            background: var(--accent);
+            color: white;
+            border-color: var(--accent);
+        }
+
+        .pill-count {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            min-width: 20px;
+            height: 20px;
+            padding: 0 6px;
+            font-size: 11px;
+            font-weight: 600;
+            background: rgba(0,0,0,0.1);
+            border-radius: 10px;
+            margin-left: 4px;
+        }
+
+        .filter-pill.active .pill-count {
+            background: rgba(255,255,255,0.25);
+        }
+
+        .sort-select {
+            padding: 8px 12px;
+            font-size: 13px;
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            background: var(--bg-primary);
+            color: var(--text-primary);
+            cursor: pointer;
+        }
+
+        .selection-info {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            font-size: 14px;
+            color: var(--text-secondary);
+        }
+
+        .selection-info strong {
+            color: var(--text-primary);
+        }
+
+        .btn-select-all {
+            font-size: 13px;
+            color: var(--text-secondary);
+            background: none;
+            border: none;
+            cursor: pointer;
+            text-decoration: underline;
+        }
+
+        .btn-select-all:hover {
+            color: var(--text-primary);
+        }
+
+        /* Empty clips state */
+        .empty-clips {
+            text-align: center;
+            padding: 60px 20px;
+            background: var(--bg-primary);
+            border: 1px solid var(--border);
+            border-radius: 12px;
+        }
+
+        /* Section header */
+        .section-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 16px;
+        }
+
+        .section-title {
+            font-size: 16px;
+            font-weight: 600;
+            color: var(--text-primary);
+        }
+
+        .selection-actions {
+            display: flex;
+            align-items: center;
+            gap: 16px;
+        }
+
+        .selection-count {
+            font-size: 14px;
+            color: var(--text-secondary);
+        }
+
+        /* Videos list */
+        .videos-list {
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+        }
+
+        .video-row {
+            background: var(--bg-primary);
+            border: 1px solid var(--border);
+            border-radius: 12px;
+            padding: 16px 20px;
+            display: flex;
+            align-items: center;
+            gap: 16px;
+            transition: all 0.15s ease;
+            cursor: pointer;
+        }
+
+        .video-row:hover {
+            border-color: var(--border-hover);
+            background: var(--bg-secondary);
+        }
+
+        .video-row.selected {
+            border-color: var(--gold);
+            background: var(--gold-bg);
+        }
+
+        .video-row-checkbox {
+            width: 22px;
+            height: 22px;
+            border: 2px solid var(--border);
+            border-radius: 6px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            flex-shrink: 0;
+            transition: all 0.15s ease;
+        }
+
+        .video-row.selected .video-row-checkbox {
+            background: var(--gold);
+            border-color: var(--gold);
+        }
+
+        .video-row-checkbox::after {
+            content: '';
+            display: none;
+            width: 6px;
+            height: 10px;
+            border: solid white;
+            border-width: 0 2px 2px 0;
+            transform: rotate(45deg);
+            margin-bottom: 2px;
+        }
+
+        .video-row.selected .video-row-checkbox::after {
+            display: block;
+        }
+
+        .video-row-info {
+            flex: 1;
+            min-width: 0;
+        }
+
+        .video-row-name {
+            font-size: 15px;
+            font-weight: 600;
+            color: var(--text-primary);
+            margin-bottom: 4px;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+
+        .video-row-meta {
+            font-size: 13px;
+            color: var(--text-secondary);
+            display: flex;
+            gap: 16px;
+        }
+
+        .video-row-stats {
+            display: flex;
+            gap: 20px;
+            align-items: center;
+        }
+
+        .video-stat {
+            text-align: center;
+        }
+
+        .video-stat-value {
+            font-size: 18px;
+            font-weight: 600;
+        }
+
+        .video-stat-value.gold {
+            color: var(--gold);
+        }
+
+        .video-stat-value.silver {
+            color: var(--silver);
+        }
+
+        .video-stat-label {
+            font-size: 11px;
+            color: var(--text-tertiary);
+            text-transform: uppercase;
+        }
+
+        /* Video pending state */
+        .video-row.pending {
+            opacity: 0.9;
+        }
+
+        .video-row.pending.processing {
+            opacity: 0.7;
+        }
+
+        .video-row-status {
+            font-size: 12px;
+            font-weight: 600;
+            padding: 4px 10px;
+            border-radius: 6px;
+        }
+
+        .video-row-status.pending {
+            background: #FEF3C7;
+            color: #D97706;
+        }
+
+        .video-row-status.analyzing {
+            background: #DBEAFE;
+            color: #2563EB;
+            animation: pulse 1.5s ease-in-out infinite;
+        }
+
+        .video-row-status.queued {
+            background: #FEF3C7;
+            color: #D97706;
+        }
+
+        .video-row-status.completed {
+            background: #DCFCE7;
+            color: #16A34A;
+        }
+
+        .video-row-status.processing {
+            background: #F3F4F6;
+            color: #6B7280;
+        }
+
+        @keyframes pulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.6; }
+        }
+
+        .analyzing-progress {
+            font-size: 14px;
+            font-weight: 600;
+            color: #2563EB;
+        }
+
+        /* Videos toolbar */
+        .videos-toolbar {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            gap: 16px;
+            margin-bottom: 20px;
+            flex-wrap: wrap;
+        }
+
+        .toolbar-left {
+            display: flex;
+            align-items: center;
+            gap: 16px;
+            flex-wrap: wrap;
+        }
+
+        .toolbar-right {
+            display: flex;
+            align-items: center;
+            gap: 16px;
+        }
+
+        .search-box {
+            position: relative;
+            width: 240px;
+        }
+
+        .search-icon {
+            position: absolute;
+            left: 12px;
+            top: 50%;
+            transform: translateY(-50%);
+            color: var(--text-tertiary);
+        }
+
+        .search-input {
+            width: 100%;
+            padding: 10px 12px 10px 38px;
+            font-size: 14px;
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            background: var(--bg-primary);
+            color: var(--text-primary);
+        }
+
+        .search-input:focus {
+            outline: none;
+            border-color: var(--accent);
+        }
+
+        .search-input::placeholder {
+            color: var(--text-tertiary);
+        }
+
+        /* Pending videos list */
+        .pending-videos {
+            background: var(--bg-primary);
+            border: 1px solid var(--border);
+            border-radius: 12px;
+            margin-bottom: 24px;
+            overflow: hidden;
+        }
+
+        .pending-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 14px 20px;
+            background: var(--bg-secondary);
+            border-bottom: 1px solid var(--border);
+        }
+
+        .pending-title {
+            font-size: 14px;
+            font-weight: 600;
+            color: var(--text-primary);
+        }
+
+        .pending-subtitle {
+            font-size: 13px;
+            color: var(--text-secondary);
+        }
+
+        .pending-item {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            padding: 12px 20px;
+            border-bottom: 1px solid var(--border);
+        }
+
+        .pending-item:last-child {
+            border-bottom: none;
+        }
+
+        .pending-thumb {
+            width: 64px;
+            height: 36px;
+            background: var(--bg-tertiary);
+            border-radius: 4px;
+            overflow: hidden;
+        }
+
+        .pending-thumb img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+        }
+
+        .pending-info {
+            flex: 1;
+        }
+
+        .pending-name {
+            font-size: 14px;
+            font-weight: 500;
+            color: var(--text-primary);
+        }
+
+        .pending-meta {
+            font-size: 12px;
+            color: var(--text-secondary);
+        }
+
+        .pending-status {
+            font-size: 12px;
+            font-weight: 600;
+            padding: 4px 10px;
+            border-radius: 6px;
+        }
+
+        .pending-status.analyzing {
+            background: #DBEAFE;
+            color: #2563EB;
+        }
+
+        .pending-status.pending {
+            background: #FEF3C7;
+            color: #D97706;
+        }
+
+        .pending-status.completed {
+            background: var(--green-bg);
+            color: var(--green);
+        }
+
+        .pending-progress {
+            width: 80px;
+            height: 4px;
+            background: var(--bg-tertiary);
+            border-radius: 2px;
+            overflow: hidden;
+        }
+
+        .pending-progress-bar {
+            height: 100%;
+            background: #2563EB;
+            border-radius: 2px;
+            transition: width 0.3s;
+        }
+
+        /* Buttons */
+        .btn {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+            padding: 12px 24px;
+            font-size: 14px;
+            font-weight: 600;
+            border-radius: 10px;
+            cursor: pointer;
+            transition: all 0.15s ease;
+            border: none;
+            text-decoration: none;
+        }
+
+        .btn-primary {
+            background: var(--accent);
+            color: white;
+        }
+
+        .btn-primary:hover {
+            background: var(--accent-hover);
+        }
+
+        .btn-primary:disabled {
+            background: var(--bg-tertiary);
+            color: var(--text-tertiary);
+            cursor: not-allowed;
+        }
+
+        .btn-secondary {
+            background: var(--bg-primary);
+            color: var(--text-primary);
+            border: 1px solid var(--border);
+        }
+
+        .btn-secondary:hover {
+            background: var(--bg-secondary);
+        }
+
+        .btn-analyze {
+            width: 100%;
+            padding: 14px;
+            font-size: 15px;
+        }
+
+        /* Toast */
+        .toast {
+            position: fixed;
+            bottom: 24px;
+            left: 50%;
+            transform: translateX(-50%) translateY(100px);
+            background: var(--accent);
+            color: white;
+            padding: 12px 24px;
+            border-radius: 8px;
+            font-size: 14px;
+            font-weight: 500;
+            opacity: 0;
+            transition: all 0.3s ease;
+            z-index: 1000;
+        }
+
+        .toast.show {
+            transform: translateX(-50%) translateY(0);
+            opacity: 1;
+        }
+
+        /* Modal */
+        .modal-overlay {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(0,0,0,0.5);
+            z-index: 300;
+            justify-content: center;
+            align-items: center;
+        }
+
+        .modal-overlay.active {
+            display: flex;
+        }
+
+        .modal {
+            background: var(--bg-primary);
+            border-radius: 16px;
+            width: 100%;
+            max-width: 480px;
+            max-height: 90vh;
+            overflow-y: auto;
+        }
+
+        .video-detail-modal {
+            max-width: 700px;
+        }
+
+        /* Video detail styles */
+        .video-detail-header {
+            display: flex;
+            gap: 20px;
+            margin-bottom: 24px;
+            padding-bottom: 20px;
+            border-bottom: 1px solid var(--border);
+        }
+
+        .video-detail-stats {
+            display: flex;
+            gap: 24px;
+        }
+
+        .detail-stat {
+            text-align: center;
+        }
+
+        .detail-stat-value {
+            font-size: 24px;
+            font-weight: 700;
+        }
+
+        .detail-stat-value.gold { color: var(--gold); }
+        .detail-stat-value.silver { color: var(--silver); }
+        .detail-stat-value.bronze { color: #CD7F32; }
+
+        .detail-stat-label {
+            font-size: 12px;
+            color: var(--text-secondary);
+            text-transform: uppercase;
+        }
+
+        .segments-title {
+            font-size: 16px;
+            font-weight: 600;
+            margin-bottom: 16px;
+            color: var(--text-primary);
+        }
+
+        /* Video expandible */
+        .video-row-wrapper {
+            margin-bottom: 12px;
+        }
+
+        .video-row-wrapper .video-row {
+            margin-bottom: 0;
+            border-radius: 12px;
+        }
+
+        .video-row-wrapper.expanded .video-row {
+            border-bottom-left-radius: 0;
+            border-bottom-right-radius: 0;
+            border-bottom-color: transparent;
+        }
+
+        .video-expand-icon {
+            width: 24px;
+            height: 24px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: var(--text-tertiary);
+            transition: transform 0.2s ease;
+            flex-shrink: 0;
+        }
+
+        .video-row-wrapper.expanded .video-expand-icon {
+            transform: rotate(180deg);
+        }
+
+        .video-detail-inline {
+            display: none;
+            background: var(--bg-primary);
+            border: 1px solid var(--border);
+            border-top: none;
+            border-radius: 0 0 12px 12px;
+            padding: 20px;
+            animation: slideDown 0.2s ease;
+        }
+
+        .video-row-wrapper.expanded .video-detail-inline {
+            display: block;
+        }
+
+        @keyframes slideDown {
+            from {
+                opacity: 0;
+                transform: translateY(-10px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        .video-detail-inline .video-detail-stats {
+            display: flex;
+            gap: 32px;
+            margin-bottom: 24px;
+            padding-bottom: 16px;
+            border-bottom: 1px solid var(--border);
+        }
+
+        .video-detail-inline .detail-stat-value {
+            font-size: 20px;
+        }
+
+        /* Timeline */
+        .video-timeline {
+            margin-bottom: 24px;
+        }
+
+        .timeline-label {
+            font-size: 12px;
+            font-weight: 500;
+            color: var(--text-secondary);
+            margin-bottom: 8px;
+            display: flex;
+            justify-content: space-between;
+        }
+
+        .timeline-bar {
+            height: 32px;
+            background: var(--bg-tertiary);
+            border-radius: 6px;
+            position: relative;
+            overflow: hidden;
+            cursor: pointer;
+        }
+
+        .timeline-segment {
+            position: absolute;
+            top: 0;
+            height: 100%;
+            min-width: 3px;
+            transition: opacity 0.15s ease;
+        }
+
+        .timeline-segment:hover {
+            opacity: 0.8;
+        }
+
+        .timeline-segment.gold {
+            background: linear-gradient(180deg, #FFD700 0%, #DAA520 100%);
+        }
+
+        .timeline-segment.silver {
+            background: linear-gradient(180deg, #C0C0C0 0%, #A8A8A8 100%);
+        }
+
+        .timeline-segment.bronze {
+            background: linear-gradient(180deg, #CD7F32 0%, #A0522D 100%);
+        }
+
+        .timeline-segment.discard {
+            background: linear-gradient(180deg, #EF4444 0%, #DC2626 100%);
+            opacity: 0.4;
+        }
+
+        .timeline-tooltip {
+            position: absolute;
+            bottom: calc(100% + 8px);
+            left: 50%;
+            transform: translateX(-50%);
+            background: #262626;
+            color: white;
+            padding: 6px 10px;
+            border-radius: 6px;
+            font-size: 11px;
+            white-space: nowrap;
+            pointer-events: none;
+            opacity: 0;
+            transition: opacity 0.15s ease;
+            z-index: 10;
+        }
+
+        .timeline-segment:hover .timeline-tooltip {
+            opacity: 1;
+        }
+
+        .timeline-legend {
+            display: flex;
+            gap: 16px;
+            margin-top: 10px;
+            font-size: 11px;
+            color: var(--text-secondary);
+        }
+
+        .timeline-legend-item {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+
+        .timeline-legend-dot {
+            width: 10px;
+            height: 10px;
+            border-radius: 3px;
+        }
+
+        .timeline-legend-dot.gold { background: #FFD700; }
+        .timeline-legend-dot.silver { background: #C0C0C0; }
+        .timeline-legend-dot.bronze { background: #CD7F32; }
+        .timeline-legend-dot.discard { background: #EF4444; opacity: 0.5; }
+
+        /* Timeline time marks */
+        .timeline-marks {
+            position: relative;
+            height: 20px;
+            margin-top: 4px;
+        }
+
+        .timeline-mark {
+            position: absolute;
+            transform: translateX(-50%);
+            font-size: 10px;
+            color: var(--text-tertiary);
+        }
+
+        .timeline-mark::before {
+            content: '';
+            position: absolute;
+            top: -6px;
+            left: 50%;
+            transform: translateX(-50%);
+            width: 1px;
+            height: 4px;
+            background: var(--border);
+        }
+
+        .segments-grid {
+            display: flex;
+            flex-direction: column;
+            gap: 4px;
+        }
+
+        .segment-card {
+            background: var(--bg-secondary);
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            overflow: hidden;
+        }
+
+        .segment-card-header {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            padding: 12px 14px;
+            cursor: pointer;
+            transition: background 0.15s ease;
+        }
+
+        .segment-card-header:hover {
+            background: rgba(0,0,0,0.03);
+        }
+
+        .segment-card.expanded .segment-card-header {
+            border-bottom: 1px solid var(--border);
+        }
+
+        .segment-expand-icon {
+            width: 18px;
+            height: 18px;
+            color: var(--text-tertiary);
+            transition: transform 0.2s ease;
+            flex-shrink: 0;
+        }
+
+        .segment-card.expanded .segment-expand-icon {
+            transform: rotate(180deg);
+        }
+
+        .segment-card-content {
+            display: none;
+            padding: 14px;
+            background: var(--bg-primary);
+        }
+
+        .segment-card.expanded .segment-card-content {
+            display: block;
+        }
+
+        .segment-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            flex: 1;
+        }
+
+        .segment-tier {
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            padding: 3px 10px;
+            border-radius: 4px;
+            font-size: 10px;
+            font-weight: 600;
+            text-transform: uppercase;
+            flex-shrink: 0;
+        }
+
+        .segment-tier.gold {
+            background: var(--gold-bg);
+            color: var(--gold);
+        }
+
+        .segment-tier.silver {
+            background: var(--silver-bg);
+            color: var(--silver);
+        }
+
+        .segment-tier.bronze {
+            background: #FEF3C7;
+            color: #CD7F32;
+        }
+
+        .segment-tier.discard {
+            background: #FEE2E2;
+            color: #DC2626;
+        }
+
+        .segment-time {
+            font-size: 13px;
+            color: var(--text-secondary);
+        }
+
+        .segment-header-left {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .segment-header-right {
+            display: flex;
+            align-items: center;
+            gap: 16px;
+        }
+
+        .segment-shot-type {
+            font-size: 13px;
+            font-weight: 500;
+            color: var(--text-primary);
+        }
+
+        .segment-time {
+            font-size: 12px;
+            color: var(--text-secondary);
+        }
+
+        .segment-score {
+            display: flex;
+            align-items: baseline;
+            gap: 2px;
+            min-width: 50px;
+            justify-content: flex-end;
+        }
+
+        .segment-score-value {
+            font-size: 18px;
+            font-weight: 700;
+        }
+
+        .segment-score-max {
+            font-size: 12px;
+            color: var(--text-tertiary);
+            font-weight: 500;
+        }
+
+        .segment-score-value.score-high {
+            color: #16A34A;
+        }
+
+        .segment-score-value.score-medium {
+            color: #CA8A04;
+        }
+
+        .segment-score-value.score-low {
+            color: #DC2626;
+        }
+
+        /* Score bar mini */
+        .score-bar-container {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .score-bar {
+            width: 60px;
+            height: 6px;
+            background: var(--bg-tertiary);
+            border-radius: 3px;
+            overflow: hidden;
+        }
+
+        .score-bar-fill {
+            height: 100%;
+            border-radius: 3px;
+            transition: width 0.3s ease;
+        }
+
+        .score-bar-fill.score-high {
+            background: linear-gradient(90deg, #16A34A, #22C55E);
+        }
+
+        .score-bar-fill.score-medium {
+            background: linear-gradient(90deg, #CA8A04, #EAB308);
+        }
+
+        .score-bar-fill.score-low {
+            background: linear-gradient(90deg, #DC2626, #EF4444);
+        }
+
+        .criteria-list {
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+        }
+
+        .criteria-item {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            font-size: 13px;
+        }
+
+        .criteria-icon {
+            width: 18px;
+            height: 18px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 10px;
+            flex-shrink: 0;
+        }
+
+        .criteria-icon.passed {
+            background: var(--green-bg);
+            color: var(--green);
+        }
+
+        .criteria-icon.failed {
+            background: #FEE2E2;
+            color: #DC2626;
+        }
+
+        .criteria-name {
+            font-weight: 500;
+            color: var(--text-primary);
+            min-width: 120px;
+        }
+
+        .criteria-explanation {
+            color: var(--text-secondary);
+            flex: 1;
+        }
+
+        .criteria-score {
+            font-weight: 600;
+            color: var(--text-primary);
+            min-width: 40px;
+            text-align: right;
+        }
+
+        .criteria-score.score-high {
+            color: #16A34A;
+        }
+
+        .criteria-score.score-medium {
+            color: #CA8A04;
+        }
+
+        .criteria-score.score-low {
+            color: #DC2626;
+        }
+
+        /* Metrics groups with gauges */
+        .metrics-groups {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 16px;
+            margin-bottom: 16px;
+        }
+
+        .metric-group {
+            background: var(--bg-primary);
+            border: 1px solid var(--border);
+            border-radius: 10px;
+            padding: 16px;
+            text-align: center;
+            transition: all 0.2s ease;
+        }
+
+        .metric-group:hover {
+            border-color: var(--border-hover);
+            box-shadow: 0 2px 8px rgba(0,0,0,0.05);
+        }
+
+        .metric-group-title {
+            font-size: 11px;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            color: var(--text-tertiary);
+            margin-bottom: 12px;
+        }
+
+        .gauge-container {
+            position: relative;
+            width: 80px;
+            height: 80px;
+            margin: 0 auto 8px;
+        }
+
+        .gauge-svg {
+            transform: rotate(-90deg);
+        }
+
+        .gauge-bg {
+            fill: none;
+            stroke: var(--bg-tertiary);
+            stroke-width: 8;
+        }
+
+        .gauge-fill {
+            fill: none;
+            stroke-width: 8;
+            stroke-linecap: round;
+            transition: stroke-dashoffset 0.5s ease;
+        }
+
+        .gauge-fill.score-high {
+            stroke: #16A34A;
+        }
+
+        .gauge-fill.score-medium {
+            stroke: #CA8A04;
+        }
+
+        .gauge-fill.score-low {
+            stroke: #DC2626;
+        }
+
+        .gauge-value {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            font-size: 20px;
+            font-weight: 700;
+        }
+
+        .gauge-value.score-high {
+            color: #16A34A;
+        }
+
+        .gauge-value.score-medium {
+            color: #CA8A04;
+        }
+
+        .gauge-value.score-low {
+            color: #DC2626;
+        }
+
+        .metric-group-details {
+            display: none;
+            text-align: left;
+            margin-top: 12px;
+            padding-top: 12px;
+            border-top: 1px solid var(--border);
+        }
+
+        .metric-group:hover .metric-group-details {
+            display: block;
+        }
+
+        .metric-detail-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 4px 0;
+            font-size: 12px;
+        }
+
+        .metric-detail-name {
+            color: var(--text-secondary);
+        }
+
+        .metric-detail-score {
+            font-weight: 600;
+        }
+
+        .no-segments {
+            text-align: center;
+            padding: 40px;
+            color: var(--text-secondary);
+        }
+
+        /* ============================================
+           HUMAN READABLE METRICS - NEW DESIGN
+           ============================================ */
+
+        /* Segment tier block with summary */
+        .segment-tier-block {
+            display: flex;
+            flex-direction: column;
+            gap: 2px;
+        }
+
+        .segment-summary {
+            font-size: 12px;
+            color: var(--text-secondary);
+            font-weight: 400;
+            max-width: 280px;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+
+        /* Quick indicators (collapsed view) */
+        .quick-indicators {
+            display: flex;
+            gap: 6px;
+            align-items: center;
+        }
+
+        .quick-indicator {
+            font-size: 14px;
+            cursor: help;
+            transition: transform 0.15s ease;
+        }
+
+        .quick-indicator:hover {
+            transform: scale(1.2);
+        }
+
+        /* Human readable metrics grid (expanded view) */
+        .hr-metrics-grid {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 12px;
+            margin-bottom: 16px;
+        }
+
+        .hr-metric-card {
+            background: var(--bg-secondary);
+            border: 1px solid var(--border);
+            border-radius: 10px;
+            padding: 14px;
+            transition: all 0.2s ease;
+        }
+
+        .hr-metric-card:hover {
+            border-color: var(--border-hover);
+            box-shadow: 0 2px 8px rgba(0,0,0,0.05);
+        }
+
+        /* Status-based border colors */
+        .hr-metric-card.status-good {
+            border-left: 3px solid #16A34A;
+        }
+
+        .hr-metric-card.status-warning {
+            border-left: 3px solid #CA8A04;
+        }
+
+        .hr-metric-card.status-poor {
+            border-left: 3px solid #EA580C;
+        }
+
+        .hr-metric-card.status-bad {
+            border-left: 3px solid #DC2626;
+        }
+
+        .hr-metric-header {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            margin-bottom: 8px;
+        }
+
+        .hr-metric-icon {
+            font-size: 14px;
+        }
+
+        .hr-metric-title {
+            font-size: 11px;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            color: var(--text-tertiary);
+        }
+
+        .hr-metric-phrase {
+            font-size: 14px;
+            font-weight: 500;
+            color: var(--text-primary);
+            line-height: 1.4;
+            min-height: 40px;
+        }
+
+        .hr-metric-score {
+            font-size: 11px;
+            color: var(--text-tertiary);
+            margin-top: 8px;
+            padding-top: 8px;
+            border-top: 1px solid var(--border);
+        }
+
+        /* Overall score display */
+        .hr-overall-score {
+            display: flex;
+            justify-content: flex-end;
+            align-items: center;
+            gap: 8px;
+            padding-top: 12px;
+            border-top: 1px solid var(--border);
+        }
+
+        .hr-overall-label {
+            font-size: 13px;
+            color: var(--text-secondary);
+        }
+
+        .hr-overall-value {
+            font-size: 16px;
+            font-weight: 700;
+        }
+
+        .hr-overall-value.score-high {
+            color: #16A34A;
+        }
+
+        .hr-overall-value.score-medium {
+            color: #CA8A04;
+        }
+
+        .hr-overall-value.score-low {
+            color: #DC2626;
+        }
+
+        /* Updated tier badges with icons */
+        .segment-tier.gold {
+            background: linear-gradient(135deg, #FEF3C7 0%, #FDE68A 100%);
+            color: #92400E;
+            border: 1px solid #F59E0B;
+        }
+
+        .segment-tier.silver {
+            background: linear-gradient(135deg, #F3F4F6 0%, #E5E7EB 100%);
+            color: #374151;
+            border: 1px solid #9CA3AF;
+        }
+
+        .segment-tier.bronze {
+            background: linear-gradient(135deg, #FEF3C7 0%, #FDE9D3 100%);
+            color: #9A3412;
+            border: 1px solid #CD7F32;
+        }
+
+        .segment-tier.discard {
+            background: linear-gradient(135deg, #FEE2E2 0%, #FECACA 100%);
+            color: #991B1B;
+            border: 1px solid #EF4444;
+        }
+
+        /* Responsive adjustments */
+        @media (max-width: 768px) {
+            .hr-metrics-grid {
+                grid-template-columns: 1fr;
+            }
+
+            .quick-indicators {
+                gap: 4px;
+            }
+
+            .quick-indicator {
+                font-size: 12px;
+            }
+
+            .segment-summary {
+                display: none;
+            }
+        }
+
+        /* ============================================
+           DISEÑO MINIMALISTA - VIDEO CARDS
+           ============================================ */
+
+        .video-card-minimal {
+            background: var(--bg-primary);
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            padding: 20px;
+            margin-bottom: 12px;
+            transition: all 0.15s ease;
+        }
+
+        .video-card-minimal:hover {
+            border-color: var(--border-hover);
+        }
+
+        .video-card-minimal.selected {
+            border-color: var(--tier-gold);
+            background: rgba(34, 197, 94, 0.05);
+        }
+
+        /* Row 1: checkbox, thumbnail, timeline, duration */
+        .video-card-row-1 {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+
+        /* Row 2: filename and usable % */
+        .video-card-row-2 {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-top: 8px;
+            margin-left: 80px; /* checkbox (20) + gap (12) + thumb (48) */
+        }
+
+        .video-card-thumb {
+            width: 48px;
+            height: 32px;
+            object-fit: cover;
+            border-radius: 4px;
+            flex-shrink: 0;
+        }
+
+        .video-card-checkbox {
+            width: 20px;
+            height: 20px;
+            border: 2px solid var(--border);
+            border-radius: 4px;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            flex-shrink: 0;
+            transition: all 0.15s ease;
+        }
+
+        .video-card-minimal.selected .video-card-checkbox {
+            background: var(--tier-gold);
+            border-color: var(--tier-gold);
+        }
+
+        .video-card-checkbox::after {
+            content: '';
+            display: none;
+            width: 5px;
+            height: 9px;
+            border: solid white;
+            border-width: 0 2px 2px 0;
+            transform: rotate(45deg);
+            margin-bottom: 2px;
+        }
+
+        .video-card-minimal.selected .video-card-checkbox::after {
+            display: block;
+        }
+
+        .video-card-filename {
+            font-size: 13px;
+            color: var(--text-secondary);
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            max-width: 60%;
+        }
+
+        .video-card-duration {
+            font-size: 13px;
+            color: var(--text-secondary);
+            font-family: monospace;
+            flex-shrink: 0;
+        }
+
+        .video-card-usable {
+            font-size: 13px;
+            color: var(--accent);
+            font-weight: 500;
+            flex-shrink: 0;
+        }
+
+        /* Timeline minimalista */
+        .mini-timeline {
+            flex: 1;
+            height: 24px;
+            border-radius: 4px;
+            overflow: visible;
+            display: flex;
+            background: var(--tier-discard);
+            position: relative;
+            cursor: pointer;
+        }
+
+        .mini-timeline-segments {
+            display: flex;
+            width: 100%;
+            height: 100%;
+            border-radius: 4px;
+            overflow: hidden;
+        }
+
+        .mini-timeline-segment {
+            height: 100%;
+            transition: opacity 0.15s ease;
+            position: relative;
+        }
+
+        .mini-timeline-segment:hover {
+            opacity: 0.8;
+        }
+
+        .mini-timeline-segment.gold {
+            background: var(--tier-gold);
+        }
+
+        .mini-timeline-segment.silver {
+            background: var(--tier-silver);
+        }
+
+        .mini-timeline-segment.bronze {
+            background: var(--tier-bronze);
+        }
+
+        .mini-timeline-segment.discard {
+            background: var(--tier-discard);
+        }
+
+        /* Tooltip del timeline - Diseño mejorado */
+        .timeline-hover-tooltip {
+            position: absolute;
+            background: #1F2937;
+            color: #F9FAFB;
+            padding: 12px 16px;
+            border-radius: 8px;
+            font-size: 13px;
+            line-height: 1.5;
+            min-width: 200px;
+            max-width: 280px;
+            pointer-events: none;
+            z-index: 100;
+            transform: translateX(-50%);
+            bottom: calc(100% + 10px);
+            opacity: 0;
+            transition: opacity 0.15s ease;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+            white-space: normal;
+        }
+
+        .timeline-hover-tooltip.visible {
+            opacity: 1;
+        }
+
+        .timeline-hover-tooltip::after {
+            content: '';
+            position: absolute;
+            top: 100%;
+            left: 50%;
+            transform: translateX(-50%);
+            border-left: 6px solid transparent;
+            border-right: 6px solid transparent;
+            border-top: 6px solid #1F2937;
+        }
+
+        .tooltip-header {
+            display: flex;
+            justify-content: space-between;
+            color: #9CA3AF;
+            font-size: 12px;
+            margin-bottom: 8px;
+            font-family: monospace;
+        }
+
+        .tooltip-shot-type {
+            font-weight: 500;
+            color: #F9FAFB;
+            margin-bottom: 8px;
+        }
+
+        .tooltip-metrics {
+            margin: 8px 0;
+        }
+
+        .tooltip-metric {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            margin: 4px 0;
+            font-size: 13px;
+        }
+
+        .tooltip-metric .icon-ok {
+            color: #22C55E;
+        }
+
+        .tooltip-metric .icon-warning {
+            color: #F59E0B;
+        }
+
+        /* Estado de metadata processing */
+        .video-card-minimal.processing .mini-timeline {
+            background: linear-gradient(90deg, var(--bg-tertiary) 0%, var(--border) 50%, var(--bg-tertiary) 100%);
+            background-size: 200% 100%;
+            animation: shimmer 1.5s infinite;
+        }
+
+        @keyframes shimmer {
+            0% { background-position: 200% 0; }
+            100% { background-position: -200% 0; }
+        }
+
+        .video-card-minimal.processing .usable-percentage {
+            color: var(--text-tertiary);
+        }
+
+        .modal-header {
+            padding: 24px;
+            border-bottom: 1px solid var(--border);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .modal-title {
+            font-size: 18px;
+            font-weight: 600;
+        }
+
+        .modal-close {
+            width: 32px;
+            height: 32px;
+            border: none;
+            background: transparent;
+            cursor: pointer;
+            font-size: 20px;
+            color: var(--text-tertiary);
+            border-radius: 6px;
+        }
+
+        .modal-close:hover {
+            background: var(--bg-secondary);
+        }
+
+        .modal-body {
+            padding: 24px;
+        }
+
+        .modal-footer {
+            padding: 16px 24px;
+            border-top: 1px solid var(--border);
+            display: flex;
+            justify-content: flex-end;
+            gap: 12px;
+        }
+
+        /* Form */
+        .form-group {
+            margin-bottom: 20px;
+        }
+
+        .form-label {
+            display: block;
+            font-size: 14px;
+            font-weight: 500;
+            color: var(--text-primary);
+            margin-bottom: 8px;
+        }
+
+        .form-input {
+            width: 100%;
+            padding: 12px 14px;
+            font-size: 14px;
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            background: var(--bg-primary);
+            color: var(--text-primary);
+        }
+
+        .form-input:focus {
+            outline: none;
+            border-color: var(--accent);
+        }
+
+        .form-select {
+            width: 100%;
+            padding: 12px 14px;
+            font-size: 14px;
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            background: var(--bg-primary);
+            color: var(--text-primary);
+            cursor: pointer;
+        }
+
+        .form-hint {
+            font-size: 13px;
+            color: var(--text-tertiary);
+            margin-top: 6px;
+        }
+
+        .checkbox-group {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 16px;
+        }
+
+        .checkbox-item {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            cursor: pointer;
+            font-size: 14px;
+        }
+
+        .checkbox-item input {
+            width: 18px;
+            height: 18px;
+            cursor: pointer;
+        }
+
+        /* Global drag overlay */
+        .drag-overlay {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(24, 24, 27, 0.9);
+            z-index: 200;
+            justify-content: center;
+            align-items: center;
+        }
+
+        .drag-overlay.active {
+            display: flex;
+        }
+
+        .drag-content {
+            text-align: center;
+            color: white;
+        }
+
+        .drag-icon {
+            font-size: 64px;
+            margin-bottom: 24px;
+        }
+
+        .drag-text {
+            font-size: 24px;
+            font-weight: 600;
+        }
+
+        /* Settings view */
+        .settings-section {
+            background: var(--bg-primary);
+            border: 1px solid var(--border);
+            border-radius: 12px;
+            padding: 24px;
+            margin-bottom: 24px;
+        }
+
+        .settings-title {
+            font-size: 16px;
+            font-weight: 600;
+            color: var(--text-primary);
+            margin-bottom: 16px;
+        }
+
+        .preset-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+            gap: 12px;
+        }
+
+        .preset-card {
+            padding: 16px;
+            border: 1px solid var(--border);
+            border-radius: 10px;
+            cursor: pointer;
+            transition: all 0.15s ease;
+        }
+
+        .preset-card:hover {
+            border-color: var(--border-hover);
+            background: var(--bg-secondary);
+        }
+
+        .preset-card.active {
+            border-color: var(--accent);
+            background: var(--bg-secondary);
+        }
+
+        .preset-name {
+            font-size: 14px;
+            font-weight: 600;
+            color: var(--text-primary);
+            margin-bottom: 4px;
+        }
+
+        .preset-desc {
+            font-size: 12px;
+            color: var(--text-secondary);
+        }
+
+        /* Context menu */
+        .context-menu {
+            position: fixed;
+            background: white;
+            border: 1px solid #E5E5E5;
+            border-radius: 8px;
+            padding: 4px;
+            min-width: 160px;
+            box-shadow: 0 4px 16px rgba(0,0,0,0.12);
+            z-index: 1000;
+            display: none;
+        }
+
+        .context-menu.active {
+            display: block;
+        }
+
+        .context-menu-item {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            padding: 8px 12px;
+            font-size: 13px;
+            color: #525252;
+            border-radius: 6px;
+            cursor: pointer;
+            transition: all 0.1s ease;
+        }
+
+        .context-menu-item:hover {
+            background: #F5F5F5;
+        }
+
+        .context-menu-item.danger {
+            color: #DC2626;
+        }
+
+        .context-menu-item.danger:hover {
+            background: #FEF2F2;
+        }
+
+        .context-menu-item svg {
+            width: 16px;
+            height: 16px;
+            opacity: 0.7;
+        }
+
+        /* Responsive */
+        @media (max-width: 900px) {
+            .sidebar {
+                display: none;
+            }
+            .main {
+                margin-left: 0;
+                padding: 24px;
+            }
+        }
+
+        /* Export Modal Styles - Presets Design */
+        .export-modal-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(0, 0, 0, 0.6);
+            display: none;
+            align-items: center;
+            justify-content: center;
+            z-index: 1000;
+        }
+
+        .export-modal-overlay.active {
+            display: flex;
+        }
+
+        .export-modal {
+            background: white;
+            border-radius: 12px;
+            width: 480px;
+            max-height: 90vh;
+            overflow-y: auto;
+            box-shadow: 0 20px 40px rgba(0, 0, 0, 0.15);
+        }
+
+        .export-modal-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 20px 24px;
+            border-bottom: 1px solid #E5E7EB;
+        }
+
+        .export-modal-header h2 {
+            font-size: 18px;
+            font-weight: 600;
+            margin: 0;
+            color: #111827;
+        }
+
+        .export-modal-close {
+            background: none;
+            border: none;
+            font-size: 24px;
+            color: #9CA3AF;
+            cursor: pointer;
+            line-height: 1;
+            padding: 0;
+            width: 32px;
+            height: 32px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            border-radius: 6px;
+            transition: all 0.15s ease;
+        }
+
+        .export-modal-close:hover {
+            background: #F3F4F6;
+            color: #111827;
+        }
+
+        .export-modal-body {
+            padding: 8px 24px 24px 24px;
+        }
+
+        /* Preset option */
+        .preset-option {
+            display: flex;
+            align-items: flex-start;
+            gap: 12px;
+            padding: 16px 0;
+            cursor: pointer;
+            border-bottom: 1px solid #F3F4F6;
+            transition: all 0.15s ease;
+        }
+
+        .preset-option:last-of-type {
+            border-bottom: none;
+        }
+
+        .preset-option:hover {
+            background: #F9FAFB;
+            margin: 0 -24px;
+            padding: 16px 24px;
+        }
+
+        .preset-radio {
+            margin-top: 2px;
+            width: 20px;
+            height: 20px;
+            accent-color: #3B82F6;
+            cursor: pointer;
+        }
+
+        .preset-content {
+            flex: 1;
+        }
+
+        .preset-title {
+            font-size: 15px;
+            font-weight: 500;
+            color: #111827;
+            margin-bottom: 4px;
+        }
+
+        .preset-description {
+            font-size: 13px;
+            color: #6B7280;
+        }
+
+        .preset-duration {
+            font-size: 14px;
+            color: #9CA3AF;
+            font-weight: 500;
+            min-width: 40px;
+            text-align: right;
+        }
+
+        /* Opciones avanzadas */
+        .advanced-options {
+            background: #F9FAFB;
+            border-radius: 8px;
+            padding: 20px;
+            margin-top: 12px;
+            margin-left: 32px;
+            max-height: 400px;
+            overflow: hidden;
+            transition: all 0.3s ease;
+        }
+
+        .advanced-options.collapsed {
+            max-height: 0;
+            padding: 0 20px;
+            margin-top: 0;
+            opacity: 0;
+        }
+
+        .advanced-section {
+            margin-bottom: 20px;
+        }
+
+        .advanced-section:last-child {
+            margin-bottom: 0;
+        }
+
+        .advanced-section-title {
+            font-size: 13px;
+            font-weight: 500;
+            color: #374151;
+            margin-bottom: 10px;
+        }
+
+        .tier-checkboxes {
+            display: flex;
+            gap: 16px;
+            flex-wrap: wrap;
+        }
+
+        .tier-checkbox {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            font-size: 14px;
+            color: #4B5563;
+            cursor: pointer;
+        }
+
+        .tier-checkbox input {
+            width: 16px;
+            height: 16px;
+            accent-color: #3B82F6;
+            cursor: pointer;
+        }
+
+        .tier-checkbox .tier-dot {
+            width: 10px;
+            height: 10px;
+            border-radius: 2px;
+        }
+
+        .tier-checkbox .duration {
+            color: #9CA3AF;
+            font-size: 12px;
+        }
+
+        .tier-dot.gold { background: var(--tier-gold); }
+        .tier-dot.silver { background: var(--tier-silver); }
+        .tier-dot.bronze { background: var(--tier-bronze); }
+        .tier-dot.discard { background: var(--tier-discard); }
+
+        .organization-options,
+        .sort-options {
+            display: flex;
+            gap: 16px;
+            flex-wrap: wrap;
+        }
+
+        .radio-option {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            font-size: 14px;
+            color: #4B5563;
+            cursor: pointer;
+        }
+
+        .radio-option input {
+            width: 16px;
+            height: 16px;
+            accent-color: #3B82F6;
+            cursor: pointer;
+        }
+
+        .handles-input {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .handles-input input {
+            width: 60px;
+            padding: 8px 12px;
+            border: 1px solid #D1D5DB;
+            border-radius: 6px;
+            font-size: 14px;
+            text-align: center;
+            background: white;
+        }
+
+        .handles-input input:focus {
+            outline: none;
+            border-color: #3B82F6;
+        }
+
+        .handles-input span {
+            font-size: 14px;
+            color: #6B7280;
+        }
+
+        /* Media folder input */
+        .media-folder-section {
+            margin-top: 20px;
+            padding-top: 20px;
+            border-top: 1px solid #E5E7EB;
+        }
+
+        .media-folder-input {
+            display: flex;
+            align-items: center;
+        }
+
+        .media-folder-input input {
+            flex: 1;
+            padding: 10px 12px;
+            border: 1px solid #D1D5DB;
+            border-radius: 6px;
+            font-size: 13px;
+            font-family: monospace;
+            background: white;
+        }
+
+        .media-folder-input input:focus {
+            outline: none;
+            border-color: #3B82F6;
+        }
+
+        .media-folder-hint {
+            font-size: 12px;
+            color: #9CA3AF;
+            margin-top: 6px;
+            margin-bottom: 0;
+        }
+
+        /* Footer */
+        .export-modal-footer {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 16px 24px;
+            background: #F9FAFB;
+            border-top: 1px solid #E5E7EB;
+            border-radius: 0 0 12px 12px;
+        }
+
+        .export-summary {
+            font-size: 14px;
+            color: #6B7280;
+        }
+
+        .export-summary strong {
+            color: #111827;
+        }
+
+        .export-modal-buttons {
+            display: flex;
+            gap: 12px;
+        }
+
+        .btn-cancel {
+            padding: 10px 20px;
+            background: white;
+            border: 1px solid #D1D5DB;
+            border-radius: 8px;
+            font-size: 14px;
+            cursor: pointer;
+            color: #374151;
+            transition: all 0.15s ease;
+        }
+
+        .btn-cancel:hover {
+            background: #F9FAFB;
+        }
+
+        .btn-export-main {
+            padding: 10px 24px;
+            border: none;
+            background: var(--accent);
+            color: white;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 14px;
+            font-weight: 500;
+            transition: all 0.15s ease;
+        }
+
+        .btn-export-main:hover {
+            background: #2563EB;
+        }
+
+        .btn-export-main:disabled {
+            background: var(--text-tertiary);
+            cursor: not-allowed;
+        }
+    </style>
+</head>
+<body>
+    <div class="app">
+        <!-- Sidebar -->
+        <aside class="sidebar">
+            <div class="sidebar-header">
+                <div class="logo">
+                    <div class="logo-icon">
+                        <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor">
+                            <path d="M4 6.5L12 2L20 6.5V17.5L12 22L4 17.5V6.5Z"/>
+                        </svg>
+                    </div>
+                    <span class="logo-text">Video Analyzer</span>
+                </div>
+                <button class="btn-new-project" onclick="showNewProjectModal()">
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <path d="M12 5v14M5 12h14"/>
+                    </svg>
+                    Nuevo Proyecto
+                </button>
+            </div>
+
+            <div class="sidebar-projects" id="sidebarProjects">
+                <div class="sidebar-section-title">Proyectos</div>
+                <!-- Projects will be rendered here -->
+            </div>
+
+            <div class="sidebar-footer">
+                <a class="nav-item" onclick="showSettings()">
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+                        <path d="M12 15a3 3 0 100-6 3 3 0 000 6z"/>
+                        <path d="M19.4 15a1.65 1.65 0 00.33 1.82l.06.06a2 2 0 010 2.83 2 2 0 01-2.83 0l-.06-.06a1.65 1.65 0 00-1.82-.33 1.65 1.65 0 00-1 1.51V21a2 2 0 01-4 0v-.09A1.65 1.65 0 009 19.4a1.65 1.65 0 00-1.82.33l-.06.06a2 2 0 01-2.83 0 2 2 0 010-2.83l.06-.06a1.65 1.65 0 00.33-1.82 1.65 1.65 0 00-1.51-1H3a2 2 0 010-4h.09A1.65 1.65 0 004.6 9a1.65 1.65 0 00-.33-1.82l-.06-.06a2 2 0 112.83-2.83l.06.06a1.65 1.65 0 001.82.33H9a1.65 1.65 0 001-1.51V3a2 2 0 114 0v.09a1.65 1.65 0 001 1.51 1.65 1.65 0 001.82-.33l.06-.06a2 2 0 112.83 2.83l-.06.06a1.65 1.65 0 00-.33 1.82V9a1.65 1.65 0 001.51 1H21a2 2 0 010 4h-.09a1.65 1.65 0 00-1.51 1z"/>
+                    </svg>
+                    Ajustes
+                </a>
+            </div>
+        </aside>
+
+        <!-- Main content -->
+        <main class="main" id="mainContent">
+            <!-- Empty state when no project selected -->
+            <div class="empty-main" id="emptyState">
+                <div class="empty-icon">📁</div>
+                <h2 class="empty-title">Selecciona o crea un proyecto</h2>
+                <p class="empty-desc">Los proyectos te permiten organizar y analizar tu material de video</p>
+                <button class="btn btn-primary" onclick="showNewProjectModal()">+ Nuevo Proyecto</button>
+            </div>
+
+            <!-- Project view (hidden by default) -->
+            <div id="projectView" style="display: none;">
+                <div class="project-header">
+                    <div>
+                        <h1 class="project-title" id="projectTitle">Proyecto</h1>
+                        <div class="project-stats-inline" id="projectStatsInline">
+                            <span class="stat"><strong id="statVideos">0</strong> videos</span>
+                            <span class="stat"><strong id="statGold" class="gold">0s</strong> gold</span>
+                            <span class="stat"><strong id="statSilver" class="silver">0s</strong> silver</span>
+                        </div>
+                    </div>
+                    <div class="header-actions">
+                        <button class="btn-import" id="uploadZone">
+                            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                <path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4M17 8l-5-5-5 5M12 3v12"/>
+                            </svg>
+                            Importar videos
+                        </button>
+                        <input type="file" class="upload-input" id="fileInput" multiple accept=".mp4,.mov,.avi,.mxf,.mkv,.m4v">
+                        <button class="btn-export" id="btnExportAll" onclick="exportAllVideos()">
+                            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                <path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4M7 10l5 5 5-5M12 15V3"/>
+                            </svg>
+                            Exportar a Premiere
+                        </button>
+                        <button class="btn-export-selection" id="btnExportSelection" onclick="exportSelectedClips()" style="display: none;">
+                            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                <path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4M7 10l5 5 5-5M12 15V3"/>
+                            </svg>
+                            Exportar selección
+                            <span class="count" id="exportCount">0</span>
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Videos del proyecto -->
+                <div id="videosSection" style="display: none;">
+                    <!-- Toolbar: búsqueda, filtros, acciones -->
+                    <div class="videos-toolbar">
+                        <div class="toolbar-left">
+                            <div class="search-box">
+                                <svg class="search-icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                    <circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/>
+                                </svg>
+                                <input type="text" class="search-input" id="searchInput" placeholder="Buscar videos..." oninput="filterVideos()">
+                            </div>
+                            <div class="filter-pills">
+                                <button class="filter-pill active" data-filter="all" onclick="setFilter('all')">Todos <span class="pill-count" id="countAll">0</span></button>
+                                <button class="filter-pill" data-filter="pending" onclick="setFilter('pending')">Pendientes <span class="pill-count" id="countPending">0</span></button>
+                                <button class="filter-pill" data-filter="analyzed" onclick="setFilter('analyzed')">Analizados <span class="pill-count" id="countAnalyzed">0</span></button>
+                            </div>
+                        </div>
+                        <div class="toolbar-right">
+                            <button class="btn-select-all" id="btnSelectAll" onclick="toggleSelectAllVideos()">Seleccionar todos</button>
+                            <span class="selection-count"><strong id="selectedCount">0</strong> seleccionados</span>
+                        </div>
+                    </div>
+
+                    <!-- Lista unificada de videos -->
+                    <div class="videos-list" id="videosList"></div>
+                </div>
+
+                <!-- Empty state -->
+                <div class="empty-clips" id="emptyClips">
+                    <div class="empty-icon">🎬</div>
+                    <h3 class="empty-title">Sin videos en el proyecto</h3>
+                    <p class="empty-desc">Importa videos para comenzar el análisis</p>
+                    <button class="btn-import" onclick="document.getElementById('fileInput').click()" style="margin-top: 16px;">
+                        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4M17 8l-5-5-5 5M12 3v12"/>
+                        </svg>
+                        Importar videos
+                    </button>
+                </div>
+            </div>
+
+            <!-- Settings view (hidden by default) -->
+            <div id="settingsView" style="display: none;">
+                <h1 class="project-title">Ajustes</h1>
+                <p style="color: var(--text-secondary); margin-bottom: 32px;">Configura los criterios de evaluacion</p>
+
+                <div class="settings-section">
+                    <h3 class="settings-title">Tipo de proyecto por defecto</h3>
+                    <div class="preset-grid" id="presetsGrid"></div>
+                </div>
+            </div>
+        </main>
+    </div>
+
+    <!-- Global drag overlay -->
+    <div class="drag-overlay" id="dragOverlay">
+        <div class="drag-content">
+            <div class="drag-icon">📁</div>
+            <div class="drag-text">Suelta para analizar</div>
+        </div>
+    </div>
+
+    <!-- Toast -->
+    <div class="toast" id="toast"></div>
+
+    <!-- Context Menu -->
+    <div class="context-menu" id="contextMenu">
+        <div class="context-menu-item danger" onclick="deleteProjectFromContext()">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+                <path d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/>
+            </svg>
+            Eliminar
+        </div>
+    </div>
+
+    <!-- Export Modal with Presets -->
+    <div class="export-modal-overlay" id="exportModal" onclick="closeExportModal(event)">
+        <div class="export-modal" onclick="event.stopPropagation()">
+            <div class="export-modal-header">
+                <h2>Exportar a Premiere</h2>
+                <button class="export-modal-close" onclick="closeModal('exportModal')">&times;</button>
+            </div>
+
+            <div class="export-modal-body">
+                <!-- Preset 1: Todo organizado (DEFAULT) -->
+                <label class="preset-option">
+                    <input type="radio" name="exportPreset" value="all_organized" checked class="preset-radio" onchange="onPresetChange()">
+                    <div class="preset-content">
+                        <div class="preset-title">Todo organizado</div>
+                        <div class="preset-description">Cada calidad en su track · Posición original</div>
+                    </div>
+                    <div class="preset-duration" id="presetAllDuration">0s</div>
+                </label>
+
+                <!-- Preset 2: Solo lo usable -->
+                <label class="preset-option">
+                    <input type="radio" name="exportPreset" value="usable_only" class="preset-radio" onchange="onPresetChange()">
+                    <div class="preset-content">
+                        <div class="preset-title">Solo lo usable</div>
+                        <div class="preset-description">Gold + Silver · En secuencia</div>
+                    </div>
+                    <div class="preset-duration" id="presetUsableDuration">0s</div>
+                </label>
+
+                <!-- Preset 3: Personalizar -->
+                <label class="preset-option">
+                    <input type="radio" name="exportPreset" value="custom" class="preset-radio" onchange="onPresetChange()">
+                    <div class="preset-content">
+                        <div class="preset-title">Personalizar</div>
+                    </div>
+                    <div class="preset-duration">→</div>
+                </label>
+
+                <!-- Opciones avanzadas (solo visible cuando "Personalizar" está seleccionado) -->
+                <div class="advanced-options collapsed" id="advancedOptions">
+                    <div class="advanced-section">
+                        <div class="advanced-section-title">¿Qué incluir?</div>
+                        <div class="tier-checkboxes">
+                            <label class="tier-checkbox">
+                                <input type="checkbox" id="customTierGold" checked onchange="updateExportSummary()">
+                                <span class="tier-dot gold"></span> Gold <span class="duration" id="customGoldDuration">0s</span>
+                            </label>
+                            <label class="tier-checkbox">
+                                <input type="checkbox" id="customTierSilver" checked onchange="updateExportSummary()">
+                                <span class="tier-dot silver"></span> Silver <span class="duration" id="customSilverDuration">0s</span>
+                            </label>
+                            <label class="tier-checkbox">
+                                <input type="checkbox" id="customTierBronze" onchange="updateExportSummary()">
+                                <span class="tier-dot bronze"></span> Bronze <span class="duration" id="customBronzeDuration">0s</span>
+                            </label>
+                            <label class="tier-checkbox">
+                                <input type="checkbox" id="customTierDiscard" onchange="updateExportSummary()">
+                                <span class="tier-dot discard"></span> Desc. <span class="duration" id="customDiscardDuration">0s</span>
+                            </label>
+                        </div>
+                    </div>
+
+                    <div class="advanced-section">
+                        <div class="advanced-section-title">¿Cómo organizar?</div>
+                        <div class="organization-options">
+                            <label class="radio-option">
+                                <input type="radio" name="customOrganization" value="sequence" checked onchange="updateExportSummary()"> En secuencia
+                            </label>
+                            <label class="radio-option">
+                                <input type="radio" name="customOrganization" value="tracks" onchange="updateExportSummary()"> Por tracks
+                            </label>
+                            <label class="radio-option">
+                                <input type="radio" name="customOrganization" value="original" onchange="updateExportSummary()"> Pos. original
+                            </label>
+                        </div>
+                    </div>
+
+                    <div class="advanced-section">
+                        <div class="advanced-section-title">Ordenar por:</div>
+                        <div class="sort-options">
+                            <label class="radio-option">
+                                <input type="radio" name="customSortBy" value="time" checked> Tiempo
+                            </label>
+                            <label class="radio-option">
+                                <input type="radio" name="customSortBy" value="quality"> Calidad
+                            </label>
+                            <label class="radio-option">
+                                <input type="radio" name="customSortBy" value="shot_type"> Tipo de toma
+                            </label>
+                        </div>
+                    </div>
+
+                    <div class="advanced-section">
+                        <div class="advanced-section-title">Handles:</div>
+                        <div class="handles-input">
+                            <input type="number" id="customHandles" value="2" min="0" max="10" onchange="updateExportSummary()">
+                            <span>segundos</span>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Carpeta de medios (siempre visible) -->
+                <div class="media-folder-section">
+                    <div class="advanced-section-title">Carpeta de medios originales:</div>
+                    <div class="media-folder-input">
+                        <input type="text" id="exportMediaFolder" placeholder="/Users/tu_usuario/Movies">
+                    </div>
+                    <p class="media-folder-hint">Ruta donde están tus archivos de video originales</p>
+                </div>
+            </div>
+
+            <!-- Footer con resumen -->
+            <div class="export-modal-footer">
+                <div class="export-summary" id="exportSummary">Resumen: <strong>0s</strong> en <strong>0</strong> clips</div>
+                <div class="export-modal-buttons">
+                    <button class="btn-cancel" onclick="closeModal('exportModal')">Cancelar</button>
+                    <button class="btn-export-main" id="btnDoExport" onclick="doExport()">Exportar XML</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // State
+        let projects = [];
+        let currentProjectId = null;
+        let analyzedVideos = [];  // Videos analizados con sus stats
+        let pendingVideos = [];   // Videos subidos pendientes de analizar
+        let selectedVideos = new Set();  // IDs de videos seleccionados
+        let analysisInterval = null;
+        let analysisRunning = false;
+        let currentFilter = 'all';  // 'all', 'pending', 'analyzed'
+        let searchQuery = '';
+
+        // Initialize
+        document.addEventListener('DOMContentLoaded', () => {
+            loadProjects();
+            setupEventListeners();
+        });
+
+        function setupEventListeners() {
+            const uploadZone = document.getElementById('uploadZone');
+            const fileInput = document.getElementById('fileInput');
+
+            uploadZone.addEventListener('click', () => fileInput.click());
+            fileInput.addEventListener('change', handleFileSelect);
+
+            // Global drag
+            document.addEventListener('dragover', e => {
+                e.preventDefault();
+                if (currentProjectId) {
+                    document.getElementById('dragOverlay').classList.add('active');
+                }
+            });
+            document.getElementById('dragOverlay').addEventListener('dragleave', e => {
+                if (e.target === document.getElementById('dragOverlay')) {
+                    document.getElementById('dragOverlay').classList.remove('active');
+                }
+            });
+            document.getElementById('dragOverlay').addEventListener('drop', e => {
+                e.preventDefault();
+                document.getElementById('dragOverlay').classList.remove('active');
+                const files = Array.from(e.dataTransfer.files);
+                if (files.length > 0 && currentProjectId) {
+                    uploadFiles(files);
+                }
+            });
+
+        }
+
+        // Projects
+        async function loadProjects() {
+            try {
+                const response = await fetch('/api/projects');
+                projects = await response.json();
+                renderSidebarProjects();
+
+                // If we have projects but none selected, show empty state
+                if (projects.length === 0) {
+                    showEmptyState();
+                }
+            } catch (err) {
+                console.error('Error loading projects:', err);
+            }
+        }
+
+        function renderSidebarProjects() {
+            const container = document.getElementById('sidebarProjects');
+
+            if (projects.length === 0) {
+                container.innerHTML = `
+                    <div class="sidebar-section-title">Proyectos</div>
+                    <p style="padding: 8px 10px; font-size: 13px; color: #737373;">
+                        No hay proyectos
+                    </p>
+                `;
+                return;
+            }
+
+            let html = '<div class="sidebar-section-title">Proyectos</div>';
+
+            for (const project of projects) {
+                const isActive = project.id === currentProjectId;
+                const videoCount = project.stats?.total_videos || 0;
+                const escapedName = project.name.replace(/'/g, "\\'").replace(/"/g, '&quot;');
+
+                html += `
+                    <div class="project-item ${isActive ? 'active' : ''}"
+                         data-project-id="${project.id}"
+                         onclick="selectProject('${project.id}')"
+                         ondblclick="startInlineRename('${project.id}', '${escapedName}')"
+                         oncontextmenu="showProjectContextMenu(event, '${project.id}', '${escapedName}')">
+                        <div class="project-item-icon">
+                            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+                                <path d="M3 7v10a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-6l-2-2H5a2 2 0 00-2 2z"/>
+                            </svg>
+                        </div>
+                        <div class="project-item-info">
+                            <span class="project-item-name" data-name-for="${project.id}">${project.name}</span>
+                            <input type="text" class="project-item-rename-input" data-input-for="${project.id}" style="display: none;">
+                        </div>
+                        ${videoCount > 0 ? `<span class="project-item-badge">${videoCount}</span>` : ''}
+                    </div>
+                `;
+            }
+
+            container.innerHTML = html;
+        }
+
+        function showEmptyState() {
+            document.getElementById('emptyState').style.display = 'flex';
+            document.getElementById('projectView').style.display = 'none';
+            document.getElementById('settingsView').style.display = 'none';
+        }
+
+        function showSettings() {
+            document.getElementById('emptyState').style.display = 'none';
+            document.getElementById('projectView').style.display = 'none';
+            document.getElementById('settingsView').style.display = 'block';
+            currentProjectId = null;
+            renderSidebarProjects();
+            loadPresets();
+        }
+
+        async function loadPresets() {
+            try {
+                const response = await fetch('/api/presets');
+                const presets = await response.json();
+
+                const grid = document.getElementById('presetsGrid');
+                grid.innerHTML = Object.entries(presets).map(([id, preset]) => `
+                    <div class="preset-card" data-preset="${id}">
+                        <div class="preset-name">${preset.nombre}</div>
+                        <div class="preset-desc">${preset.descripcion}</div>
+                    </div>
+                `).join('');
+
+                grid.querySelectorAll('.preset-card').forEach(card => {
+                    card.addEventListener('click', () => {
+                        grid.querySelectorAll('.preset-card').forEach(c => c.classList.remove('active'));
+                        card.classList.add('active');
+                    });
+                });
+            } catch (err) {
+                console.error('Error loading presets:', err);
+            }
+        }
+
+        async function selectProject(projectId) {
+            currentProjectId = projectId;
+            renderSidebarProjects();
+
+            document.getElementById('emptyState').style.display = 'none';
+            document.getElementById('settingsView').style.display = 'none';
+            document.getElementById('projectView').style.display = 'block';
+
+            // Reset state for this project
+            pendingVideos = [];
+            analyzedVideos = [];
+            selectedVideos.clear();
+
+            // NO borrar videos pendientes automáticamente - el usuario decide
+            // Los videos pendientes persisten entre proyectos hasta que se analicen
+
+            // Load project data
+            try {
+                const response = await fetch(`/api/projects/${projectId}`);
+                const project = await response.json();
+
+                document.getElementById('projectTitle').textContent = project.name;
+
+                // Update stats
+                const stats = project.stats || {};
+                document.getElementById('statVideos').textContent = stats.total_videos || 0;
+                document.getElementById('statGold').textContent = formatTime(stats.gold_duration || 0);
+                document.getElementById('statSilver').textContent = formatTime(stats.silver_duration || 0);
+
+                // Load analyzed videos from all analyses
+                await loadProjectVideos(project);
+
+                // Cargar videos pendientes (de videos_raw/)
+                await loadPendingVideos();
+
+                // Render
+                renderAllSections();
+
+            } catch (err) {
+                console.error('Error loading project:', err);
+            }
+        }
+
+        async function loadProjectVideos(project) {
+            analyzedVideos = [];
+
+            if (project.analyses_data) {
+                for (const analysis of project.analyses_data) {
+                    try {
+                        const response = await fetch(`/api/analysis/${analysis.id}`);
+                        const data = await response.json();
+
+                        for (const video of data.analyses || []) {
+                            if (!video.success) continue;
+
+                            // Calcular stats del video
+                            const segments = video.segments || [];
+                            const goldSegs = segments.filter(s => s.tier === 'gold');
+                            const silverSegs = segments.filter(s => s.tier === 'silver');
+
+                            const goldDuration = goldSegs.reduce((sum, s) => sum + (s.duration || 0), 0);
+                            const silverDuration = silverSegs.reduce((sum, s) => sum + (s.duration || 0), 0);
+
+                            analyzedVideos.push({
+                                id: `${analysis.id}_${video.filename}`,
+                                filename: video.filename,
+                                path: video.path,
+                                duration: video.duration || 0,
+                                goldCount: goldSegs.length,
+                                silverCount: silverSegs.length,
+                                goldDuration: goldDuration,
+                                silverDuration: silverDuration,
+                                totalSegments: segments.length,
+                                segments: segments,  // Guardamos para exportar
+                                analysis_id: analysis.id,
+                                thumbnail_id: video.thumbnail_id
+                            });
+                        }
+                    } catch (err) {
+                        console.error('Error loading analysis:', err);
+                    }
+                }
+            }
+
+            renderAllSections();
+        }
+
+        function toggleVideoSelection(videoId) {
+            if (selectedVideos.has(videoId)) {
+                selectedVideos.delete(videoId);
+            } else {
+                selectedVideos.add(videoId);
+            }
+
+            // Update UI
+            const row = document.querySelector(`.video-row[data-id="${videoId}"]`);
+            if (row) {
+                row.classList.toggle('selected', selectedVideos.has(videoId));
+            }
+
+            updateSelectionInfo();
+        }
+
+        function toggleSelectAllVideos() {
+            const allSelected = analyzedVideos.every(v => selectedVideos.has(v.id));
+
+            if (allSelected) {
+                selectedVideos.clear();
+            } else {
+                analyzedVideos.forEach(v => selectedVideos.add(v.id));
+            }
+
+            renderAllSections();
+        }
+
+        async function loadPendingVideos() {
+            // Cargar videos pendientes desde el servidor (videos_raw/)
+            try {
+                const response = await fetch('/api/videos');
+                const videos = await response.json();
+
+                // Filtrar los que aún están procesando metadata
+                pendingVideos = videos.map(v => ({
+                    name: v.name,
+                    duration: v.duration || 0,
+                    thumbnail_id: v.thumbnail_id,
+                    status: v.metadata_status === 'processing' ? 'processing' : 'pending',
+                    metadata_status: v.metadata_status || 'ready',
+                    size_mb: v.size_mb
+                }));
+
+                // Si hay videos con metadata pendiente, hacer polling
+                if (videos.some(v => v.metadata_status === 'processing')) {
+                    setTimeout(async () => {
+                        await loadPendingVideos();
+                        renderAllSections();
+                    }, 1500);
+                }
+            } catch (err) {
+                console.error('Error loading pending videos:', err);
+            }
+        }
+
+        function updateSelectionInfo() {
+            document.getElementById('selectedCount').textContent = selectedVideos.size;
+            document.getElementById('exportCount').textContent = selectedVideos.size;
+
+            // Show/hide selection export button
+            const btnExportSelection = document.getElementById('btnExportSelection');
+            btnExportSelection.style.display = selectedVideos.size > 0 ? 'inline-flex' : 'none';
+
+            const allSelected = analyzedVideos.length > 0 && analyzedVideos.every(v => selectedVideos.has(v.id));
+            document.getElementById('btnSelectAll').textContent = allSelected ? 'Deseleccionar todos' : 'Seleccionar todos';
+        }
+
+        // Upload & Analysis
+        function handleFileSelect(e) {
+            if (!currentProjectId) {
+                showToast('Selecciona un proyecto primero');
+                return;
+            }
+            uploadFiles(Array.from(e.target.files));
+        }
+
+        async function uploadFiles(files) {
+            // Mostrar estado de subida inmediatamente
+            showToast(`Subiendo ${files.length} video(s)...`);
+
+            // Subir todos los archivos EN PARALELO (mucho más rápido)
+            const uploadPromises = files.map(async (file) => {
+                const formData = new FormData();
+                formData.append('file', file);
+                try {
+                    const response = await fetch('/api/upload', { method: 'POST', body: formData });
+                    const data = await response.json();
+                    if (data.status === 'ok') {
+                        return {
+                            name: data.filename,
+                            duration: data.duration || 0,
+                            thumbnail_id: data.thumbnail_id,
+                            status: 'pending',
+                            metadata_status: data.metadata_status || 'processing',
+                            size_mb: data.size_mb
+                        };
+                    }
+                } catch (err) {
+                    console.error('Upload error:', err);
+                }
+                return null;
+            });
+
+            // Esperar a que terminen todos los uploads
+            const results = await Promise.all(uploadPromises);
+
+            // Agregar los videos subidos exitosamente
+            const uploaded = results.filter(r => r !== null);
+            pendingVideos.push(...uploaded);
+
+            renderAllSections();
+            showToast(`${uploaded.length} video(s) importados - analizando...`);
+
+            // Iniciar análisis automáticamente
+            if (pendingVideos.length > 0 && !analysisRunning) {
+                startAnalysis();
+            }
+        }
+
+        async function checkPendingVideos() {
+            try {
+                const response = await fetch('/api/videos');
+                const videos = await response.json();
+
+                if (videos.length > 0) {
+                    // Check if analysis is running
+                    const statusRes = await fetch('/api/status');
+                    const status = await statusRes.json();
+
+                    pendingVideos = videos.map(v => ({
+                        name: v.name,
+                        duration: v.duration,
+                        thumbnail_id: v.thumbnail_id,
+                        status: status.running ? (status.current_video === v.name ? 'analyzing' : 'pending') : 'pending',
+                        progress: status.current_video === v.name ? status.current_progress : 0
+                    }));
+
+                    if (status.running && !analysisInterval) {
+                        analysisRunning = true;
+                        analysisInterval = setInterval(checkAnalysisStatus, 800);
+                    }
+                }
+
+                renderAllSections();
+            } catch (err) {
+                console.error('Error checking videos:', err);
+            }
+        }
+
+        function setFilter(filter) {
+            currentFilter = filter;
+            // Update active pill
+            document.querySelectorAll('.filter-pill').forEach(pill => {
+                pill.classList.toggle('active', pill.dataset.filter === filter);
+            });
+            renderAllSections();
+        }
+
+        function filterVideos() {
+            searchQuery = document.getElementById('searchInput').value.toLowerCase().trim();
+            renderAllSections();
+        }
+
+        function getFilteredVideos() {
+            // Combine all videos into a unified list
+            const allVideos = [];
+
+            // Add pending videos
+            for (const v of pendingVideos) {
+                allVideos.push({
+                    id: `pending_${v.name}`,
+                    filename: v.name,
+                    duration: v.duration || 0,
+                    type: 'pending',
+                    status: v.status || 'pending',
+                    progress: v.progress || 0,
+                    metadata_status: v.metadata_status,
+                    size_mb: v.size_mb,
+                    goldCount: 0,
+                    silverCount: 0,
+                    totalSegments: 0
+                });
+            }
+
+            // Add analyzed videos
+            for (const v of analyzedVideos) {
+                allVideos.push({
+                    ...v,
+                    type: 'analyzed'
+                });
+            }
+
+            // Apply filter
+            let filtered = allVideos;
+            if (currentFilter === 'pending') {
+                filtered = allVideos.filter(v => v.type === 'pending');
+            } else if (currentFilter === 'analyzed') {
+                filtered = allVideos.filter(v => v.type === 'analyzed');
+            }
+
+            // Apply search
+            if (searchQuery) {
+                filtered = filtered.filter(v => v.filename.toLowerCase().includes(searchQuery));
+            }
+
+            return filtered;
+        }
+
+        function renderAllSections() {
+            const videosSection = document.getElementById('videosSection');
+            const emptyState = document.getElementById('emptyClips');
+            const videosList = document.getElementById('videosList');
+
+            const hasPending = pendingVideos.length > 0;
+            const hasAnalyzed = analyzedVideos.length > 0;
+
+            // Update filter pill counts
+            document.getElementById('countAll').textContent = pendingVideos.length + analyzedVideos.length;
+            document.getElementById('countPending').textContent = pendingVideos.length;
+            document.getElementById('countAnalyzed').textContent = analyzedVideos.length;
+
+            // Show/hide main sections
+            if (!hasPending && !hasAnalyzed) {
+                videosSection.style.display = 'none';
+                emptyState.style.display = 'block';
+                return;
+            }
+
+            videosSection.style.display = 'block';
+            emptyState.style.display = 'none';
+
+            // Get filtered videos
+            const filteredVideos = getFilteredVideos();
+
+            // Render unified list
+            if (filteredVideos.length === 0) {
+                videosList.innerHTML = `
+                    <div style="text-align: center; padding: 40px; color: var(--text-secondary);">
+                        No se encontraron videos
+                    </div>
+                `;
+            } else {
+                videosList.innerHTML = filteredVideos.map(video => {
+                    if (video.type === 'pending') {
+                        // Pending video row
+                        const isProcessingMeta = video.metadata_status === 'processing';
+                        let statusClass, statusText;
+
+                        if (video.status === 'completed') {
+                            statusClass = 'completed';
+                            statusText = '✓ Analizado';
+                        } else if (video.status === 'analyzing') {
+                            statusClass = 'analyzing';
+                            statusText = `Analizando... ${video.progress}%`;
+                        } else if (video.status === 'queued') {
+                            statusClass = 'queued';
+                            statusText = 'En cola...';
+                        } else if (isProcessingMeta) {
+                            statusClass = 'processing';
+                            statusText = 'Procesando...';
+                        } else {
+                            statusClass = 'pending';
+                            statusText = 'Listo para analizar';
+                        }
+
+                        const durationText = video.duration > 0 ? formatTime(video.duration) : '...';
+
+                        return `
+                            <div class="video-row pending ${isProcessingMeta ? 'processing' : ''}" data-id="${video.id}">
+                                <div class="video-row-info">
+                                    <div class="video-row-name">${video.filename}</div>
+                                    <div class="video-row-meta">
+                                        <span>Duración: ${durationText}</span>
+                                        ${video.size_mb ? `<span>${video.size_mb} MB</span>` : ''}
+                                    </div>
+                                </div>
+                                <span class="video-row-status ${statusClass}">${statusText}</span>
+                            </div>
+                        `;
+                    } else {
+                        // Analyzed video - DISEÑO MINIMALISTA
+                        const segments = video.segments || [];
+
+                        // Calcular porcentaje usable (gold + silver)
+                        const goldDuration = segments.filter(s => s.tier === 'gold').reduce((sum, s) => sum + (s.end_time - s.start_time), 0);
+                        const silverDuration = segments.filter(s => s.tier === 'silver').reduce((sum, s) => sum + (s.end_time - s.start_time), 0);
+                        const usablePercent = video.duration > 0 ? Math.round(((goldDuration + silverDuration) / video.duration) * 100) : 0;
+
+                        return `
+                            <div class="video-card-minimal ${selectedVideos.has(video.id) ? 'selected' : ''}" data-id="${video.id}">
+                                <div class="video-card-row-1">
+                                    <div class="video-card-checkbox" onclick="event.stopPropagation(); toggleVideoSelection('${video.id}')"></div>
+                                    ${video.thumbnail_id ? `<img class="video-card-thumb" src="/thumbnails/${video.thumbnail_id}.jpg" alt="">` : ''}
+                                    <div class="mini-timeline" data-video-id="${video.id}">
+                                        <div class="mini-timeline-segments">
+                                        ${segments.length === 0 ? '' : segments.map((seg, idx) => {
+                                            const tierClass = seg.tier || 'discard';
+                                            const widthPercent = ((seg.end_time - seg.start_time) / video.duration) * 100;
+                                            const action = seg.action || seg.human_readable?.action || (tierClass === 'gold' ? 'Usar' : 'Revisar');
+                                            const shotType = seg.shot_type || 'DESCONOCIDO';
+                                            const hr = seg.human_readable || {};
+                                            const hasIssue = seg.has_issue ?? hr.has_issue ?? false;
+                                            const stabStatus = hr.stability?.status || 'good';
+                                            const stabPhrase = (hr.stability?.phrase || '').replace(/"/g, '&quot;');
+                                            const imgStatus = hr.image_quality?.status || 'good';
+                                            const imgPhrase = (hr.image_quality?.phrase || '').replace(/"/g, '&quot;');
+                                            const frameStatus = hr.framing?.status || 'good';
+                                            const framePhrase = (hr.framing?.phrase || '').replace(/"/g, '&quot;');
+                                            return `
+                                                <div class="mini-timeline-segment ${tierClass}"
+                                                     style="width: ${widthPercent}%;"
+                                                     data-start="${seg.start_time}"
+                                                     data-end="${seg.end_time}"
+                                                     data-action="${action}"
+                                                     data-shot-type="${shotType}"
+                                                     data-stab-status="${stabStatus}"
+                                                     data-stab-phrase="${stabPhrase}"
+                                                     data-img-status="${imgStatus}"
+                                                     data-img-phrase="${imgPhrase}"
+                                                     data-frame-status="${frameStatus}"
+                                                     data-frame-phrase="${framePhrase}"
+                                                     data-has-issue="${hasIssue}"
+                                                     data-tier="${tierClass}"
+                                                     data-idx="${idx}">
+                                                </div>
+                                            `;
+                                        }).join('')}
+                                        </div>
+                                        <div class="timeline-hover-tooltip" id="tooltip-${video.id}">
+                                            <div class="tooltip-header">
+                                                <span class="tooltip-timecode"></span>
+                                                <span class="tooltip-duration"></span>
+                                            </div>
+                                            <div class="tooltip-shot-type"></div>
+                                            <div class="tooltip-metrics"></div>
+                                        </div>
+                                    </div>
+                                    <div class="video-card-duration">${formatTime(video.duration)}</div>
+                                </div>
+                                <div class="video-card-row-2">
+                                    <div class="video-card-filename">${video.filename}</div>
+                                    <div class="video-card-usable">${usablePercent}% usable</div>
+                                </div>
+                            </div>
+                        `;
+                    }
+                }).join('');
+            }
+
+            updateSelectionInfo();
+
+            // Inicializar tooltips después de renderizar
+            setTimeout(initTimelineTooltips, 50);
+        }
+
+        async function startAnalysis() {
+            if (analysisRunning || !currentProjectId || pendingVideos.length === 0) return;
+
+            analysisRunning = true;
+            // Marcar todos como "en cola" inmediatamente
+            pendingVideos = pendingVideos.map(v => ({ ...v, status: 'queued' }));
+            renderAllSections();
+
+            try {
+                await fetch('/api/analyze', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        config: {},
+                        project_id: currentProjectId
+                    })
+                });
+
+                // Esperar un momento para que el hilo de análisis inicie
+                await new Promise(resolve => setTimeout(resolve, 1000));
+                analysisInterval = setInterval(checkAnalysisStatus, 800);
+            } catch (err) {
+                console.error('Error starting analysis:', err);
+                analysisRunning = false;
+                renderAllSections();
+            }
+        }
+
+        async function checkAnalysisStatus() {
+            try {
+                const response = await fetch('/api/status');
+                const status = await response.json();
+
+                // Solo considerar terminado si no está corriendo Y tiene videos procesados
+                // Esto evita el race condition cuando el hilo aún no ha iniciado
+                if (!status.running && status.total_videos > 0 && status.completed_videos?.length > 0) {
+                    // Analysis finished
+                    clearInterval(analysisInterval);
+                    analysisInterval = null;
+                    analysisRunning = false;
+
+                    // Clear pending videos (they are now analyzed)
+                    pendingVideos = [];
+
+                    // Reload project data to get new analyzed videos
+                    selectedVideos.clear();
+                    await selectProject(currentProjectId);
+
+                    showToast('Analisis completado!');
+                } else if (status.running) {
+                    // Update pending videos status while analyzing
+                    pendingVideos = pendingVideos.map(v => {
+                        if (status.completed_videos?.includes(v.name)) {
+                            // Mantener como completado (no remover hasta que termine todo)
+                            return { ...v, status: 'completed', progress: 100 };
+                        } else if (status.current_video === v.name) {
+                            return { ...v, status: 'analyzing', progress: status.current_progress || 50 };
+                        } else {
+                            // En cola (análisis corriendo pero este video aún no inicia)
+                            return { ...v, status: 'queued' };
+                        }
+                    });
+
+                    renderAllSections();
+                }
+            } catch (err) {
+                console.error('Error checking status:', err);
+            }
+        }
+
+        // Export
+        let videosToExport = []; // Videos que se van a exportar (todos o selección)
+
+        function exportAllVideos() {
+            if (analyzedVideos.length === 0) {
+                showToast('No hay videos analizados para exportar');
+                return;
+            }
+            videosToExport = [...analyzedVideos];
+            openExportModal();
+        }
+
+        function exportSelectedClips() {
+            if (selectedVideos.size === 0) return;
+            videosToExport = analyzedVideos.filter(v => selectedVideos.has(v.id));
+            openExportModal();
+        }
+
+        // Tier durations cache for export modal
+        let exportTierDurations = { gold: 0, silver: 0, bronze: 0, discard: 0 };
+
+        function openExportModal() {
+            // Calcular duraciones por tier
+            exportTierDurations = { gold: 0, silver: 0, bronze: 0, discard: 0 };
+
+            for (const video of videosToExport) {
+                for (const seg of video.segments || []) {
+                    const tier = seg.tier || 'discard';
+                    const duration = (seg.end_time || 0) - (seg.start_time || 0);
+                    if (exportTierDurations[tier] !== undefined) {
+                        exportTierDurations[tier] += duration;
+                    }
+                }
+            }
+
+            const totalAll = exportTierDurations.gold + exportTierDurations.silver + exportTierDurations.bronze + exportTierDurations.discard;
+            const totalUsable = exportTierDurations.gold + exportTierDurations.silver;
+
+            // Update preset durations
+            document.getElementById('presetAllDuration').textContent = `${Math.round(totalAll)}s`;
+            document.getElementById('presetUsableDuration').textContent = `${Math.round(totalUsable)}s`;
+
+            // Update custom tier durations
+            document.getElementById('customGoldDuration').textContent = `${Math.round(exportTierDurations.gold)}s`;
+            document.getElementById('customSilverDuration').textContent = `${Math.round(exportTierDurations.silver)}s`;
+            document.getElementById('customBronzeDuration').textContent = `${Math.round(exportTierDurations.bronze)}s`;
+            document.getElementById('customDiscardDuration').textContent = `${Math.round(exportTierDurations.discard)}s`;
+
+            // Reset to default preset (all_organized)
+            document.querySelector('input[name="exportPreset"][value="all_organized"]').checked = true;
+
+            // Reset custom options to defaults
+            document.getElementById('customTierGold').checked = true;
+            document.getElementById('customTierSilver').checked = true;
+            document.getElementById('customTierBronze').checked = false;
+            document.getElementById('customTierDiscard').checked = false;
+            document.querySelector('input[name="customOrganization"][value="sequence"]').checked = true;
+            document.querySelector('input[name="customSortBy"][value="time"]').checked = true;
+            document.getElementById('customHandles').value = '2';
+
+            // Collapse advanced options
+            document.getElementById('advancedOptions').classList.add('collapsed');
+
+            // Set default media folder
+            document.getElementById('exportMediaFolder').value = '/Users/danielazpe/Movies';
+
+            // Update summary
+            updateExportSummary();
+
+            // Show modal
+            document.getElementById('exportModal').classList.add('active');
+        }
+
+        function closeExportModal(event) {
+            if (event.target === event.currentTarget) {
+                closeModal('exportModal');
+            }
+        }
+
+        function onPresetChange() {
+            const preset = document.querySelector('input[name="exportPreset"]:checked').value;
+            const advancedOptions = document.getElementById('advancedOptions');
+
+            if (preset === 'custom') {
+                advancedOptions.classList.remove('collapsed');
+            } else {
+                advancedOptions.classList.add('collapsed');
+            }
+
+            updateExportSummary();
+        }
+
+        function updateExportSummary() {
+            const preset = document.querySelector('input[name="exportPreset"]:checked').value;
+            let totalDuration = 0;
+            let totalClips = 0;
+            let selectedTiers = [];
+
+            if (preset === 'all_organized') {
+                selectedTiers = ['gold', 'silver', 'bronze', 'discard'];
+            } else if (preset === 'usable_only') {
+                selectedTiers = ['gold', 'silver'];
+            } else {
+                // Custom
+                if (document.getElementById('customTierGold').checked) selectedTiers.push('gold');
+                if (document.getElementById('customTierSilver').checked) selectedTiers.push('silver');
+                if (document.getElementById('customTierBronze').checked) selectedTiers.push('bronze');
+                if (document.getElementById('customTierDiscard').checked) selectedTiers.push('discard');
+            }
+
+            for (const video of videosToExport) {
+                for (const seg of video.segments || []) {
+                    if (selectedTiers.includes(seg.tier)) {
+                        totalDuration += (seg.end_time || 0) - (seg.start_time || 0);
+                        totalClips++;
+                    }
+                }
+            }
+
+            document.getElementById('exportSummary').innerHTML = `Resumen: <strong>${Math.round(totalDuration)}s</strong> en <strong>${totalClips}</strong> clips`;
+
+            // Enable/disable export button
+            const btnExport = document.getElementById('btnDoExport');
+            btnExport.disabled = totalClips === 0;
+        }
+
+        function getExportOptions() {
+            const preset = document.querySelector('input[name="exportPreset"]:checked').value;
+
+            // Preset configurations
+            const presets = {
+                'all_organized': {
+                    tiers: ['gold', 'silver', 'bronze', 'discard'],
+                    organization: 'original',
+                    sort_by: 'time',
+                    handles: 2
+                },
+                'usable_only': {
+                    tiers: ['gold', 'silver'],
+                    organization: 'sequence',
+                    sort_by: 'time',
+                    handles: 2
+                }
+            };
+
+            if (preset !== 'custom') {
+                return presets[preset];
+            }
+
+            // Custom options
+            const selectedTiers = [];
+            if (document.getElementById('customTierGold').checked) selectedTiers.push('gold');
+            if (document.getElementById('customTierSilver').checked) selectedTiers.push('silver');
+            if (document.getElementById('customTierBronze').checked) selectedTiers.push('bronze');
+            if (document.getElementById('customTierDiscard').checked) selectedTiers.push('discard');
+
+            const organization = document.querySelector('input[name="customOrganization"]:checked').value;
+            const sortBy = document.querySelector('input[name="customSortBy"]:checked').value;
+            const handles = parseInt(document.getElementById('customHandles').value) || 0;
+
+            return { tiers: selectedTiers, organization, sort_by: sortBy, handles };
+        }
+
+        async function doExport() {
+            const options = getExportOptions();
+
+            // Collect all segments from videos to export that match tier filter
+            const allClips = [];
+            for (const video of videosToExport) {
+                for (const seg of video.segments || []) {
+                    if (options.tiers.includes(seg.tier)) {
+                        allClips.push({
+                            filename: video.filename,
+                            path: video.path,
+                            start_time: seg.start_time,
+                            end_time: seg.end_time,
+                            tier: seg.tier,
+                            shot_type: seg.shot_type,
+                            duration: video.duration
+                        });
+                    }
+                }
+            }
+
+            if (allClips.length === 0) {
+                showToast('No hay clips para exportar');
+                return;
+            }
+
+            // Get media folder
+            const mediaFolder = document.getElementById('exportMediaFolder').value.trim();
+
+            if (!mediaFolder) {
+                showToast('Especifica la carpeta de medios originales');
+                document.getElementById('exportMediaFolder').focus();
+                return;
+            }
+
+            // Generate filename from project name
+            const project = projects.find(p => p.id === currentProjectId);
+            const customFilename = project ? project.name : 'export';
+
+            try {
+                const response = await fetch('/api/export', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        project_id: currentProjectId,
+                        tiers: options.tiers,
+                        organization: options.organization,
+                        sort_by: options.sort_by,
+                        handles: options.handles,
+                        filename: customFilename,
+                        media_folder: mediaFolder,
+                        selected_clips: allClips
+                    })
+                });
+
+                const data = await response.json();
+
+                if (data.download_url) {
+                    window.location.href = data.download_url;
+                    closeModal('exportModal');
+                    showToast('XML exportado!');
+                } else if (data.error) {
+                    showToast('Error: ' + data.error);
+                }
+            } catch (err) {
+                console.error('Error exporting:', err);
+                showToast('Error al exportar');
+            }
+        }
+
+        // Project creation - Instant (no modal)
+        function generateProjectName() {
+            const now = new Date();
+            const day = now.getDate();
+            const months = ['Ene', 'Feb', 'Mar', 'Abr', 'May', 'Jun', 'Jul', 'Ago', 'Sep', 'Oct', 'Nov', 'Dic'];
+            const month = months[now.getMonth()];
+            const hours = now.getHours().toString().padStart(2, '0');
+            const mins = now.getMinutes().toString().padStart(2, '0');
+            return `Proyecto ${day}-${month} ${hours}:${mins}`;
+        }
+
+        async function createProjectInstant() {
+            const name = generateProjectName();
+
+            try {
+                // Limpiar videos pendientes anteriores al crear un NUEVO proyecto
+                await fetch('/api/videos/clear', { method: 'POST' });
+                pendingVideos = [];
+
+                const response = await fetch('/api/projects', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ name, preset: 'default', notes: '' })
+                });
+                const project = await response.json();
+
+                await loadProjects();
+                selectProject(project.id);
+            } catch (err) {
+                console.error('Error creating project:', err);
+                showToast('Error al crear proyecto');
+            }
+        }
+
+        // Alias for backwards compatibility
+        function showNewProjectModal() {
+            createProjectInstant();
+        }
+
+        // Utilities
+        function closeModal(modalId) {
+            document.getElementById(modalId).classList.remove('active');
+        }
+
+        function showToast(message) {
+            const toast = document.getElementById('toast');
+            toast.textContent = message;
+            toast.classList.add('show');
+            setTimeout(() => toast.classList.remove('show'), 3000);
+        }
+
+        function formatTime(seconds) {
+            if (seconds < 60) return Math.round(seconds) + 's';
+            const m = Math.floor(seconds / 60);
+            const s = Math.round(seconds % 60);
+            return `${m}m ${s}s`;
+        }
+
+        function formatTimecode(seconds) {
+            const m = Math.floor(seconds / 60);
+            const s = Math.floor(seconds % 60);
+            const ms = Math.round((seconds % 1) * 100);
+            return `${m}:${s.toString().padStart(2, '0')}.${ms.toString().padStart(2, '0')}`;
+        }
+
+        function generateTimeMarks(duration) {
+            const marks = [];
+            const interval = 5; // segundos
+
+            // Siempre mostrar 0:00
+            marks.push(`<div class="timeline-mark" style="left: 0%;">0:00</div>`);
+
+            // Generar marcas cada 5 segundos
+            for (let t = interval; t < duration; t += interval) {
+                const percent = (t / duration) * 100;
+                const minutes = Math.floor(t / 60);
+                const secs = Math.floor(t % 60);
+                const timeStr = `${minutes}:${secs.toString().padStart(2, '0')}`;
+                marks.push(`<div class="timeline-mark" style="left: ${percent}%;">${timeStr}</div>`);
+            }
+
+            // Siempre mostrar la duración total al final
+            const totalMin = Math.floor(duration / 60);
+            const totalSec = Math.floor(duration % 60);
+            marks.push(`<div class="timeline-mark" style="left: 100%;">${totalMin}:${totalSec.toString().padStart(2, '0')}</div>`);
+
+            return marks.join('');
+        }
+
+        function getScoreClass(score) {
+            if (score >= 9) return 'score-high';
+            if (score >= 7) return 'score-medium';
+            return 'score-low';
+        }
+
+        function renderMetricsGroups(criteria) {
+            // Agrupar criterios en 3 categorías
+            const groups = {
+                stability: {
+                    title: 'Estabilidad',
+                    icon: '📐',
+                    metrics: [],
+                    keywords: ['estabilidad', 'stability', 'shake', 'movimiento', 'motion', 'smooth']
+                },
+                focus: {
+                    title: 'Enfoque',
+                    icon: '🎯',
+                    metrics: [],
+                    keywords: ['enfoque', 'focus', 'sharp', 'blur', 'nitidez', 'definición']
+                },
+                light: {
+                    title: 'Iluminación',
+                    icon: '💡',
+                    metrics: [],
+                    keywords: ['luz', 'light', 'exposición', 'exposure', 'brillo', 'contrast', 'color']
+                }
+            };
+
+            // Distribuir criterios en grupos según keywords
+            criteria.forEach(c => {
+                const name = (c.name || '').toLowerCase();
+                let assigned = false;
+
+                for (const [key, group] of Object.entries(groups)) {
+                    if (group.keywords.some(kw => name.includes(kw))) {
+                        group.metrics.push(c);
+                        assigned = true;
+                        break;
+                    }
+                }
+
+                // Si no matchea ningún keyword, asignar al grupo con menos métricas
+                if (!assigned) {
+                    const minGroup = Object.values(groups).reduce((min, g) =>
+                        g.metrics.length < min.metrics.length ? g : min
+                    );
+                    minGroup.metrics.push(c);
+                }
+            });
+
+            // Calcular promedio por grupo
+            const calculateAvg = (metrics) => {
+                if (metrics.length === 0) return 0;
+                const sum = metrics.reduce((acc, m) => acc + (typeof m.score === 'number' ? m.score : 5), 0);
+                return sum / metrics.length;
+            };
+
+            // Renderizar gauge SVG
+            const renderGauge = (score) => {
+                const scoreClass = getScoreClass(score);
+                const radius = 32;
+                const circumference = 2 * Math.PI * radius;
+                const offset = circumference - (score / 10) * circumference;
+
+                return `
+                    <div class="gauge-container">
+                        <svg class="gauge-svg" width="80" height="80" viewBox="0 0 80 80">
+                            <circle class="gauge-bg" cx="40" cy="40" r="${radius}"/>
+                            <circle class="gauge-fill ${scoreClass}" cx="40" cy="40" r="${radius}"
+                                stroke-dasharray="${circumference}"
+                                stroke-dashoffset="${offset}"/>
+                        </svg>
+                        <div class="gauge-value ${scoreClass}">${score.toFixed(1)}</div>
+                    </div>
+                `;
+            };
+
+            // Generar HTML para cada grupo
+            let html = '<div class="metrics-groups">';
+
+            for (const [key, group] of Object.entries(groups)) {
+                const avg = calculateAvg(group.metrics);
+                const scoreClass = getScoreClass(avg);
+
+                html += `
+                    <div class="metric-group">
+                        <div class="metric-group-title">${group.icon} ${group.title}</div>
+                        ${renderGauge(avg)}
+                        <div class="metric-group-details">
+                            ${group.metrics.map(m => {
+                                const mScore = typeof m.score === 'number' ? m.score : 5;
+                                const mClass = getScoreClass(mScore);
+                                return `
+                                    <div class="metric-detail-item">
+                                        <span class="metric-detail-name">${m.name}</span>
+                                        <span class="metric-detail-score ${mClass}">${mScore.toFixed(1)}</span>
+                                    </div>
+                                `;
+                            }).join('')}
+                        </div>
+                    </div>
+                `;
+            }
+
+            html += '</div>';
+            return html;
+        }
+
+        // Render quick status indicators (circles) for collapsed view
+        function renderQuickIndicators(hr) {
+            const getStatusIcon = (status) => {
+                switch(status) {
+                    case 'good': return '🟢';
+                    case 'warning': return '🟡';
+                    case 'poor': return '🟠';
+                    case 'bad': return '🔴';
+                    default: return '⚪';
+                }
+            };
+
+            return `
+                <div class="quick-indicators">
+                    <span class="quick-indicator" title="Estabilidad: ${hr.stability?.phrase || 'N/A'}">
+                        ${getStatusIcon(hr.stability?.status)}
+                    </span>
+                    <span class="quick-indicator" title="Calidad de imagen: ${hr.image_quality?.phrase || 'N/A'}">
+                        ${getStatusIcon(hr.image_quality?.status)}
+                    </span>
+                    <span class="quick-indicator" title="Encuadre: ${hr.framing?.phrase || 'N/A'}">
+                        ${getStatusIcon(hr.framing?.status)}
+                    </span>
+                </div>
+            `;
+        }
+
+        // Render human readable metrics for expanded view
+        function renderHumanReadableMetrics(hr, overallScore) {
+            const getStatusClass = (status) => {
+                switch(status) {
+                    case 'good': return 'status-good';
+                    case 'warning': return 'status-warning';
+                    case 'poor': return 'status-poor';
+                    case 'bad': return 'status-bad';
+                    default: return '';
+                }
+            };
+
+            const getStatusIcon = (status) => {
+                switch(status) {
+                    case 'good': return '🟢';
+                    case 'warning': return '🟡';
+                    case 'poor': return '🟠';
+                    case 'bad': return '🔴';
+                    default: return '⚪';
+                }
+            };
+
+            const metrics = [
+                { key: 'stability', title: 'Estabilidad', data: hr.stability },
+                { key: 'image_quality', title: 'Calidad de imagen', data: hr.image_quality },
+                { key: 'framing', title: 'Encuadre', data: hr.framing }
+            ];
+
+            return `
+                <div class="hr-metrics-grid">
+                    ${metrics.map(m => {
+                        const data = m.data || { status: 'warning', phrase: 'Sin datos', score: 5 };
+                        const statusClass = getStatusClass(data.status);
+                        const statusIcon = getStatusIcon(data.status);
+                        return `
+                            <div class="hr-metric-card ${statusClass}">
+                                <div class="hr-metric-header">
+                                    <span class="hr-metric-icon">${statusIcon}</span>
+                                    <span class="hr-metric-title">${m.title}</span>
+                                </div>
+                                <div class="hr-metric-phrase">${data.phrase || 'N/A'}</div>
+                                <div class="hr-metric-score">Score: ${(data.score || 0).toFixed(1)}</div>
+                            </div>
+                        `;
+                    }).join('')}
+                </div>
+                <div class="hr-overall-score">
+                    <span class="hr-overall-label">Puntuación general:</span>
+                    <span class="hr-overall-value ${getScoreClass(overallScore)}">${overallScore.toFixed(1)}/10</span>
+                </div>
+            `;
+        }
+
+        // Video Detail - Toggle expand/collapse (legacy)
+        function toggleVideoExpand(videoId) {
+            const wrapper = document.querySelector(`.video-row-wrapper[data-id="${videoId}"]`);
+            if (!wrapper) return;
+
+            // Close other expanded videos
+            document.querySelectorAll('.video-row-wrapper.expanded').forEach(w => {
+                if (w !== wrapper) w.classList.remove('expanded');
+            });
+
+            // Toggle this one
+            wrapper.classList.toggle('expanded');
+        }
+
+        // Preview de un segmento específico
+        function previewSegment(videoId, startTime) {
+            // Por ahora solo log - aquí se puede implementar el preview
+            console.log(`Preview video ${videoId} at ${startTime}s`);
+            showToast(`Ir a ${formatTimecode(startTime)}`);
+        }
+
+        // Traducir shot_type a español
+        function getShotTypeName(shotType) {
+            const types = {
+                'ESTÁTICA': 'Toma estática',
+                'ESTATICA': 'Toma estática',
+                'PANEO': 'Paneo horizontal',
+                'TILT': 'Paneo vertical',
+                'FLUIDO': 'Movimiento fluido',
+                'TRACKING': 'Seguimiento',
+                'SHAKY': 'Cámara en mano',
+                'DESCONOCIDO': 'Toma general'
+            };
+            return types[shotType?.toUpperCase()] || 'Toma general';
+        }
+
+        // Generar métricas del tooltip usando las frases reales del análisis
+        function getTooltipMetrics(segment) {
+            const tier = segment.dataset.tier;
+
+            // Obtener status y frases del análisis
+            const stabStatus = segment.dataset.stabStatus || 'good';
+            const stabPhrase = segment.dataset.stabPhrase || '';
+            const imgStatus = segment.dataset.imgStatus || 'good';
+            const imgPhrase = segment.dataset.imgPhrase || '';
+
+            const metrics = [];
+
+            // Mostrar estabilidad
+            if (stabPhrase) {
+                if (stabStatus === 'good') {
+                    metrics.push({ icon: '✓', cls: 'icon-ok', text: stabPhrase });
+                } else {
+                    metrics.push({ icon: '⚠', cls: 'icon-warning', text: stabPhrase });
+                }
+            }
+
+            // Mostrar calidad de imagen
+            if (imgPhrase) {
+                if (imgStatus === 'good') {
+                    metrics.push({ icon: '✓', cls: 'icon-ok', text: imgPhrase });
+                } else {
+                    metrics.push({ icon: '⚠', cls: 'icon-warning', text: imgPhrase });
+                }
+            }
+
+            // Si no hay métricas, mostrar mensaje según tier
+            if (metrics.length === 0) {
+                if (tier === 'gold' || tier === 'silver') {
+                    metrics.push({ icon: '✓', cls: 'icon-ok', text: 'Todo en orden' });
+                } else {
+                    metrics.push({ icon: '⚠', cls: 'icon-warning', text: 'Requiere revisión' });
+                }
+            }
+
+            return { metrics };
+        }
+
+        // Inicializar tooltips del timeline
+        function initTimelineTooltips() {
+            document.querySelectorAll('.mini-timeline').forEach(timeline => {
+                // Evitar agregar listeners duplicados
+                if (timeline.dataset.tooltipInit === 'true') return;
+                timeline.dataset.tooltipInit = 'true';
+
+                const videoId = timeline.dataset.videoId;
+                const tooltip = document.getElementById(`tooltip-${videoId}`);
+                if (!tooltip) return;
+
+                timeline.addEventListener('mousemove', (e) => {
+                    const segment = e.target.closest('.mini-timeline-segment');
+                    if (!segment) {
+                        tooltip.classList.remove('visible');
+                        return;
+                    }
+
+                    const start = parseFloat(segment.dataset.start);
+                    const end = parseFloat(segment.dataset.end);
+                    const duration = Math.round((end - start) * 10) / 10;
+                    const shotType = segment.dataset.shotType || 'DESCONOCIDO';
+
+                    // Header: timecode y duración
+                    tooltip.querySelector('.tooltip-timecode').textContent = `${formatTimecode(start)} - ${formatTimecode(end)}`;
+                    tooltip.querySelector('.tooltip-duration').textContent = `${duration}s`;
+
+                    // Tipo de toma
+                    tooltip.querySelector('.tooltip-shot-type').textContent = getShotTypeName(shotType);
+
+                    // Métricas
+                    const { metrics } = getTooltipMetrics(segment);
+                    const metricsHtml = metrics.map(m =>
+                        `<div class="tooltip-metric"><span class="${m.cls}">${m.icon}</span><span>${m.text}</span></div>`
+                    ).join('');
+                    tooltip.querySelector('.tooltip-metrics').innerHTML = metricsHtml;
+
+                    // Posicionar tooltip
+                    const rect = timeline.getBoundingClientRect();
+                    const x = e.clientX - rect.left;
+
+                    // Asegurar que el tooltip no se salga del timeline
+                    const tooltipWidth = 240;
+                    const minX = tooltipWidth / 2;
+                    const maxX = rect.width - tooltipWidth / 2;
+                    const clampedX = Math.max(minX, Math.min(maxX, x));
+
+                    tooltip.style.left = `${clampedX}px`;
+                    tooltip.classList.add('visible');
+                });
+
+                timeline.addEventListener('mouseleave', () => {
+                    tooltip.classList.remove('visible');
+                });
+
+                timeline.addEventListener('click', (e) => {
+                    const segment = e.target.closest('.mini-timeline-segment');
+                    if (!segment) return;
+
+                    const start = parseFloat(segment.dataset.start);
+                    previewSegment(videoId, start);
+                });
+            });
+        }
+
+        // Llamar después de renderizar
+        const originalRenderAllSections = renderAllSections;
+        // Se llamará initTimelineTooltips después de cada render
+
+        // Segment accordion toggle
+        function toggleSegment(segId) {
+            const card = document.querySelector(`.segment-card[data-seg-id="${segId}"]`);
+            if (!card) return;
+            card.classList.toggle('expanded');
+        }
+
+        // Context Menu
+        let contextMenuProjectId = null;
+        let contextMenuProjectName = '';
+
+        function showProjectContextMenu(e, projectId, projectName) {
+            e.preventDefault();
+            e.stopPropagation();
+
+            contextMenuProjectId = projectId;
+            contextMenuProjectName = projectName;
+
+            const menu = document.getElementById('contextMenu');
+            menu.style.left = e.clientX + 'px';
+            menu.style.top = e.clientY + 'px';
+            menu.classList.add('active');
+        }
+
+        function hideContextMenu() {
+            document.getElementById('contextMenu').classList.remove('active');
+            contextMenuProjectId = null;
+            contextMenuProjectName = '';
+        }
+
+        // Inline rename project in sidebar
+        let inlineRenameProjectId = null;
+
+        function startInlineRename(projectId, currentName) {
+            event.stopPropagation(); // Prevent selectProject from firing
+
+            // If already renaming another, cancel it first
+            if (inlineRenameProjectId && inlineRenameProjectId !== projectId) {
+                cancelInlineRename();
+            }
+
+            inlineRenameProjectId = projectId;
+
+            const nameEl = document.querySelector(`[data-name-for="${projectId}"]`);
+            const inputEl = document.querySelector(`[data-input-for="${projectId}"]`);
+
+            if (!nameEl || !inputEl) return;
+
+            nameEl.style.display = 'none';
+            inputEl.style.display = 'block';
+            inputEl.value = currentName;
+            inputEl.focus();
+            inputEl.select();
+
+            // Add event listeners
+            inputEl.onkeydown = (e) => {
+                if (e.key === 'Enter') {
+                    e.preventDefault();
+                    saveInlineRename();
+                } else if (e.key === 'Escape') {
+                    cancelInlineRename();
+                }
+            };
+
+            inputEl.onblur = () => {
+                // Small delay to allow click on other elements
+                setTimeout(() => {
+                    if (inlineRenameProjectId === projectId) {
+                        saveInlineRename();
+                    }
+                }, 150);
+            };
+        }
+
+        function cancelInlineRename() {
+            if (!inlineRenameProjectId) return;
+
+            const nameEl = document.querySelector(`[data-name-for="${inlineRenameProjectId}"]`);
+            const inputEl = document.querySelector(`[data-input-for="${inlineRenameProjectId}"]`);
+
+            if (nameEl) nameEl.style.display = '';
+            if (inputEl) {
+                inputEl.style.display = 'none';
+                inputEl.onkeydown = null;
+                inputEl.onblur = null;
+            }
+
+            inlineRenameProjectId = null;
+        }
+
+        async function saveInlineRename() {
+            if (!inlineRenameProjectId) return;
+
+            const projectId = inlineRenameProjectId;
+            const inputEl = document.querySelector(`[data-input-for="${projectId}"]`);
+            const nameEl = document.querySelector(`[data-name-for="${projectId}"]`);
+
+            if (!inputEl) return;
+
+            const newName = inputEl.value.trim();
+
+            // If empty, cancel
+            if (!newName) {
+                cancelInlineRename();
+                return;
+            }
+
+            // If same name, just cancel
+            if (nameEl && newName === nameEl.textContent) {
+                cancelInlineRename();
+                return;
+            }
+
+            try {
+                const response = await fetch(`/api/projects/${projectId}`, {
+                    method: 'PATCH',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ name: newName })
+                });
+
+                if (response.ok) {
+                    // Update the name in place
+                    if (nameEl) nameEl.textContent = newName;
+
+                    // Update header title if it's the current project
+                    if (currentProjectId === projectId) {
+                        document.getElementById('projectTitle').textContent = newName;
+                        if (currentProject) currentProject.name = newName;
+                    }
+                } else {
+                    showToast('Error al renombrar');
+                }
+            } catch (err) {
+                console.error('Error renaming project:', err);
+                showToast('Error al renombrar');
+            }
+
+            // Reset UI
+            if (nameEl) nameEl.style.display = '';
+            if (inputEl) {
+                inputEl.style.display = 'none';
+                inputEl.onkeydown = null;
+                inputEl.onblur = null;
+            }
+            inlineRenameProjectId = null;
+        }
+
+        async function deleteProjectFromContext() {
+            // Guardar valores antes de ocultar el menú
+            const projectId = contextMenuProjectId;
+            const projectName = contextMenuProjectName;
+
+            hideContextMenu();
+
+            if (!projectId) return;
+
+            if (!confirm(`¿Eliminar el proyecto "${projectName}"?\n\nEsta accion no se puede deshacer.`)) {
+                return;
+            }
+
+            try {
+                const response = await fetch(`/api/projects/${projectId}`, {
+                    method: 'DELETE'
+                });
+
+                if (response.ok) {
+                    // Si era el proyecto actual, limpiar vista
+                    if (currentProjectId === projectId) {
+                        currentProjectId = null;
+                        showEmptyState();
+                    }
+
+                    await loadProjects();
+                    showToast('Proyecto eliminado');
+                } else {
+                    showToast('Error al eliminar proyecto');
+                }
+            } catch (err) {
+                console.error('Error deleting project:', err);
+                showToast('Error al eliminar proyecto');
+            }
+        }
+
+        // Close context menu on click outside
+        document.addEventListener('click', hideContextMenu);
+        document.addEventListener('contextmenu', (e) => {
+            // Hide menu if clicking outside project items
+            if (!e.target.closest('.project-item')) {
+                hideContextMenu();
+            }
+        });
+
+    </script>
+</body>
+</html>

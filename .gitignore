@@ -1,0 +1,42 @@
+# Dependencies
+node_modules/
+python/venv/
+.pnp
+.pnp.js
+
+# Build outputs
+dist/
+release/
+*.dmg
+*.exe
+*.AppImage
+
+# Python
+python/__pycache__/
+python/*.pyc
+python/videos_raw/
+python/videos_analyzed/
+python/thumbnails/
+python/projects/
+
+# IDE
+.idea/
+.vscode/
+*.swp
+*.swo
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Logs
+*.log
+npm-debug.log*
+
+# Environment
+.env
+.env.local
+.env.*.local
+
+# Misc
+*.local

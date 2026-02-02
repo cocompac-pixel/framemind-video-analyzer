@@ -1,0 +1,108 @@
+{
+  "name": "framemind",
+  "version": "1.0.0",
+  "description": "Análisis inteligente de video para post-producción",
+  "main": "electron/main.js",
+  "author": "Daniel Azpe <danielandresazpe@gmail.com>",
+  "license": "MIT",
+  "private": true,
+  "scripts": {
+    "dev": "concurrently \"npm run dev:react\" \"wait-on http://localhost:5173 && npm run dev:electron\"",
+    "dev:react": "vite",
+    "dev:electron": "electron .",
+    "build": "vite build && electron-builder",
+    "build:mac": "vite build && electron-builder --mac",
+    "build:win": "vite build && electron-builder --win",
+    "build:linux": "vite build && electron-builder --linux",
+    "preview": "vite preview",
+    "lint": "eslint src --ext js,jsx --report-unused-disable-directives --max-warnings 0"
+  },
+  "dependencies": {
+    "electron-updater": "^6.1.7",
+    "electron-log": "^5.0.3"
+  },
+  "devDependencies": {
+    "@types/react": "^18.2.43",
+    "@types/react-dom": "^18.2.17",
+    "@vitejs/plugin-react": "^4.2.1",
+    "concurrently": "^8.2.2",
+    "electron": "^28.1.0",
+    "electron-builder": "^24.9.1",
+    "eslint": "^8.55.0",
+    "eslint-plugin-react": "^7.33.2",
+    "eslint-plugin-react-hooks": "^4.6.0",
+    "eslint-plugin-react-refresh": "^0.4.5",
+    "lucide-react": "^0.303.0",
+    "react": "^18.2.0",
+    "react-dom": "^18.2.0",
+    "vite": "^5.0.8",
+    "wait-on": "^7.2.0"
+  },
+  "build": {
+    "appId": "com.framemind.app",
+    "productName": "FrameMind",
+    "copyright": "Copyright © 2024 Daniel Azpe",
+    "mac": {
+      "category": "public.app-category.video",
+      "icon": "resources/icon.icns",
+      "target": [
+        {
+          "target": "dmg",
+          "arch": ["arm64"]
+        }
+      ],
+      "hardenedRuntime": false,
+      "gatekeeperAssess": false,
+      "extraResources": [
+        {
+          "from": "python",
+          "to": "python",
+          "filter": [
+            "backend_executable",
+            "app.py",
+            "video_analyzer_engine.py",
+            "report_generator.py",
+            "export_premiere.py",
+            "config.json"
+          ]
+        },
+        {
+          "from": "resources/ffmpeg",
+          "to": "ffmpeg",
+          "filter": ["**/*"]
+        }
+      ]
+    },
+    "dmg": {
+      "title": "${productName} ${version}",
+      "backgroundColor": "#1a1a2e",
+      "contents": [
+        {
+          "x": 130,
+          "y": 220
+        },
+        {
+          "x": 410,
+          "y": 220,
+          "type": "link",
+          "path": "/Applications"
+        }
+      ]
+    },
+    "files": [
+      "dist/**/*",
+      "electron/**/*",
+      "!**/node_modules/*/{CHANGELOG.md,README.md,README,readme.md,readme}",
+      "!**/node_modules/*/{test,__tests__,tests,powered-test,example,examples}",
+      "!**/node_modules/.bin"
+    ],
+    "directories": {
+      "output": "release"
+    },
+    "publish": {
+      "provider": "github",
+      "owner": "tu-usuario-github",
+      "repo": "framemind"
+    }
+  }
+}

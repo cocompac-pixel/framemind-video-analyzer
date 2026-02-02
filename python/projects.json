@@ -1,0 +1,99 @@
+{
+  "0fe6d94a": {
+    "id": "0fe6d94a",
+    "name": "temp_20260113_164159",
+    "preset": null,
+    "notes": "Análisis rápido",
+    "created_at": "2026-01-13T16:41:59.899186",
+    "updated_at": "2026-01-13T16:41:59.899193",
+    "analyses": [],
+    "stats": {
+      "total_videos": 0,
+      "total_duration": 0,
+      "gold_duration": 0,
+      "silver_duration": 0
+    }
+  },
+  "35f76c1e": {
+    "id": "35f76c1e",
+    "name": "13 Ene 17:25",
+    "preset": null,
+    "notes": "",
+    "created_at": "2026-01-13T17:25:15.035885",
+    "updated_at": "2026-01-13T17:25:15.035906",
+    "analyses": [],
+    "stats": {
+      "total_videos": 0,
+      "total_duration": 0,
+      "gold_duration": 0,
+      "silver_duration": 0
+    }
+  },
+  "a408860b": {
+    "id": "a408860b",
+    "name": "13 Ene 17:29",
+    "preset": null,
+    "notes": "",
+    "created_at": "2026-01-13T17:29:02.424440",
+    "updated_at": "2026-01-13T17:33:18.035028",
+    "analyses": [
+      "analisis_completo_20260113_173001",
+      "analisis_completo_20260113_173318"
+    ],
+    "stats": {
+      "total_videos": 2,
+      "total_duration": 44.377666999999995,
+      "gold_duration": 8.8,
+      "silver_duration": 25.599999999999998
+    }
+  },
+  "36973ba5": {
+    "id": "36973ba5",
+    "name": "proyecto 2",
+    "preset": null,
+    "notes": "",
+    "created_at": "2026-01-13T22:32:17.350958",
+    "updated_at": "2026-01-13T22:36:33.691637",
+    "analyses": [],
+    "stats": {
+      "total_videos": 0,
+      "total_duration": 0,
+      "gold_duration": 0,
+      "silver_duration": 0
+    }
+  },
+  "b192a098": {
+    "id": "b192a098",
+    "name": "13 Ene 22:45",
+    "preset": null,
+    "notes": "",
+    "created_at": "2026-01-13T22:45:48.572335",
+    "updated_at": "2026-01-14T12:45:46.493449",
+    "analyses": [
+      "analisis_completo_20260113_224627"
+    ],
+    "stats": {
+      "total_videos": 1,
+      "total_duration": 11.5115,
+      "gold_duration": 2.6,
+      "silver_duration": 3.0000000000000004
+    }
+  },
+  "c631376e": {
+    "id": "c631376e",
+    "name": "14 Ene 13:36",
+    "preset": null,
+    "notes": "",
+    "created_at": "2026-01-14T13:36:43.174193",
+    "updated_at": "2026-01-14T13:41:04.480039",
+    "analyses": [
+      "analisis_completo_20260114_134104"
+    ],
+    "stats": {
+      "total_videos": 2,
+      "total_duration": 54.596209,
+      "gold_duration": 9.0,
+      "silver_duration": 20.2
+    }
+  }
+}

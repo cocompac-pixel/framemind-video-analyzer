@@ -1,0 +1,206 @@
+/* FrameMind v2.0 - Updated 2026-01-14 */
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+:root {
+  /* FrameMind Light Theme - Clean & Minimal */
+  --bg-primary: #FAFAFA;       /* Off-white main background */
+  --bg-secondary: #FFFFFF;     /* Pure white for cards */
+  --bg-tertiary: #F5F5F5;      /* Subtle gray for elevated surfaces */
+  --bg-sidebar: #FFFFFF;       /* Clean white sidebar */
+
+  --text-primary: #1A1A1A;     /* Near black - main text */
+  --text-secondary: #4A4A4A;   /* Dark gray - secondary text */
+  --text-muted: #8A8A8A;       /* Medium gray - muted text */
+
+  --border: #E8E8E8;           /* Light subtle borders */
+  --border-hover: #D0D0D0;     /* Hover borders */
+
+  --accent: #1A1A1A;           /* Dark accent color */
+  --accent-hover: #333333;     /* Slightly lighter on hover */
+  --accent-gradient: linear-gradient(135deg, #2A2A2A 0%, #1A1A1A 100%);
+
+  /* Tier colors - Clear & distinguishable */
+  --tier-gold: #B8860B;        /* DarkGoldenrod - rich gold */
+  --tier-gold-bg: rgba(184, 134, 11, 0.08);
+  --tier-silver: #6B7B8C;      /* Steel blue-gray */
+  --tier-silver-bg: rgba(107, 123, 140, 0.08);
+  --tier-bronze: #8B5A2B;      /* Saddle brown */
+  --tier-bronze-bg: rgba(139, 90, 43, 0.08);
+  --tier-garbage: #9E4A4A;     /* Muted red */
+  --tier-garbage-bg: rgba(158, 74, 74, 0.08);
+
+  /* Status colors */
+  --gold: #B8860B;
+  --gold-bg: rgba(184, 134, 11, 0.08);
+  --silver: #6B7B8C;
+  --silver-bg: rgba(107, 123, 140, 0.08);
+  --green: #4A8C5C;            /* Forest green */
+  --green-bg: rgba(74, 140, 92, 0.08);
+  --blue: #4A7C9E;             /* Steel blue */
+  --blue-bg: rgba(74, 124, 158, 0.08);
+  --red: #9E4A4A;              /* Muted red */
+  --red-bg: rgba(158, 74, 74, 0.08);
+
+  /* Accent for interactive elements */
+  --olive: #E8E8E8;            /* Light gray for backgrounds */
+  --olive-light: #F0F0F0;
+
+  /* Layout */
+  --sidebar-width: 280px;
+
+  /* Borders and shadows */
+  --radius-sm: 6px;
+  --radius-md: 10px;
+  --radius-lg: 16px;
+  --shadow-sm: 0 1px 3px rgba(0, 0, 0, 0.04);
+  --shadow-md: 0 4px 16px rgba(0, 0, 0, 0.06);
+
+  /* Transitions */
+  --transition-fast: 0.15s ease;
+  --transition-normal: 0.25s ease;
+}
+
+body {
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+  background: var(--bg-primary);
+  min-height: 100vh;
+  color: var(--text-primary);
+  line-height: 1.5;
+  -webkit-font-smoothing: antialiased;
+}
+
+/* App layout */
+.app {
+  display: flex;
+  min-height: 100vh;
+  padding-top: 28px; /* Space for macOS traffic lights */
+}
+
+/* macOS title bar drag region */
+body::before {
+  content: '';
+  display: block;
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 28px;
+  background: var(--bg-secondary);
+  -webkit-app-region: drag;
+  z-index: 1000;
+  border-bottom: 1px solid var(--border);
+}
+
+/* Custom scrollbar */
+::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+::-webkit-scrollbar-thumb {
+  background: #D0D0D0;
+  border-radius: 4px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: #B0B0B0;
+}
+
+/* Animations */
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes pulse {
+  0%, 100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.5;
+  }
+}
+
+@keyframes spin {
+  from {
+    transform: rotate(0deg);
+  }
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+@keyframes slideDown {
+  from {
+    opacity: 0;
+    transform: translateY(-10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.fade-in {
+  animation: fadeIn 0.3s ease forwards;
+}
+
+.pulse {
+  animation: pulse 1.5s ease-in-out infinite;
+}
+
+.spin {
+  animation: spin 0.8s linear infinite;
+}
+
+/* Utilities */
+.drag-region {
+  -webkit-app-region: drag;
+}
+
+.no-drag {
+  -webkit-app-region: no-drag;
+}
+
+.truncate {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* Focus states */
+button:focus-visible,
+input:focus-visible,
+[tabindex]:focus-visible {
+  outline: 2px solid var(--tier-gold);
+  outline-offset: 2px;
+}
+
+/* Selection */
+::selection {
+  background: var(--accent);
+  color: white;
+}
+
+/* Disable text selection on UI elements */
+button,
+.sidebar,
+.project-item,
+.filter-pill,
+.video-card-checkbox {
+  user-select: none;
+}

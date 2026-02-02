@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg width="1024" height="1024" viewBox="0 0 1024 1024" xmlns="http://www.w3.org/2000/svg">
+  <!-- Background (rounded square for macOS style) -->
+  <rect x="40" y="40" width="944" height="944" rx="180" ry="180" fill="#F5F5F5"/>
+
+  <!-- Circle ring (outline only) -->
+  <circle cx="512" cy="512" r="280" fill="none" stroke="#1a1a1a" stroke-width="28"/>
+
+  <!-- Diagonal line passing through the circle (like a needle or planet ring) -->
+  <!-- Line goes from bottom-left to top-right, slightly tilted -->
+  <line x1="80" y1="560" x2="944" y2="464" stroke="#1a1a1a" stroke-width="20" stroke-linecap="round"/>
+</svg>

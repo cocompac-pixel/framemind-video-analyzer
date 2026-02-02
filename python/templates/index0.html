@@ -1,0 +1,1027 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Video Analyzer</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%);
+            min-height: 100vh;
+            color: #e0e0e0;
+        }
+        
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+        
+        /* Header */
+        header {
+            text-align: center;
+            padding: 30px 0;
+        }
+        
+        h1 {
+            font-size: 2.5em;
+            background: linear-gradient(135deg, #667eea, #764ba2);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            margin-bottom: 10px;
+        }
+        
+        .subtitle {
+            color: #888;
+            font-size: 1.1em;
+        }
+        
+        /* Main Grid */
+        .main-grid {
+            display: grid;
+            grid-template-columns: 1fr 350px;
+            gap: 25px;
+            margin-top: 20px;
+        }
+        
+        @media (max-width: 900px) {
+            .main-grid {
+                grid-template-columns: 1fr;
+            }
+        }
+        
+        /* Cards */
+        .card {
+            background: rgba(255, 255, 255, 0.05);
+            border-radius: 16px;
+            padding: 25px;
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+        }
+        
+        .card h2 {
+            font-size: 1.2em;
+            margin-bottom: 20px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+        
+        /* Drop Zone */
+        .drop-zone {
+            border: 2px dashed rgba(102, 126, 234, 0.5);
+            border-radius: 12px;
+            padding: 60px 20px;
+            text-align: center;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            margin-bottom: 20px;
+        }
+        
+        .drop-zone:hover, .drop-zone.dragover {
+            border-color: #667eea;
+            background: rgba(102, 126, 234, 0.1);
+        }
+        
+        .drop-zone-icon {
+            font-size: 3em;
+            margin-bottom: 15px;
+        }
+        
+        .drop-zone p {
+            color: #888;
+            margin-bottom: 10px;
+        }
+        
+        .drop-zone .formats {
+            font-size: 0.85em;
+            color: #666;
+        }
+        
+        /* Video List */
+        .video-list {
+            max-height: 300px;
+            overflow-y: auto;
+        }
+        
+        .video-item {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 12px 15px;
+            background: rgba(0, 0, 0, 0.2);
+            border-radius: 8px;
+            margin-bottom: 8px;
+        }
+        
+        .video-item .info {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+        
+        .video-item .icon {
+            font-size: 1.5em;
+        }
+        
+        .video-item .name {
+            font-weight: 500;
+        }
+        
+        .video-item .size {
+            font-size: 0.85em;
+            color: #888;
+        }
+        
+        .video-item .delete {
+            background: none;
+            border: none;
+            color: #ff6b6b;
+            cursor: pointer;
+            font-size: 1.2em;
+            opacity: 0.7;
+            transition: opacity 0.2s;
+        }
+        
+        .video-item .delete:hover {
+            opacity: 1;
+        }
+        
+        /* Config Section */
+        .config-section {
+            margin-bottom: 25px;
+        }
+        
+        .config-section h3 {
+            font-size: 0.9em;
+            color: #888;
+            margin-bottom: 15px;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+        
+        /* Module Toggle */
+        .module {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 12px 0;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+        }
+        
+        .module:last-child {
+            border-bottom: none;
+        }
+        
+        .module-info {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+        
+        .module-icon {
+            font-size: 1.2em;
+        }
+        
+        .module-name {
+            font-weight: 500;
+        }
+        
+        .module-weight {
+            font-size: 0.85em;
+            color: #888;
+        }
+        
+        /* Toggle Switch */
+        .toggle {
+            position: relative;
+            width: 50px;
+            height: 26px;
+        }
+        
+        .toggle input {
+            opacity: 0;
+            width: 0;
+            height: 0;
+        }
+        
+        .toggle-slider {
+            position: absolute;
+            cursor: pointer;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 26px;
+            transition: 0.3s;
+        }
+        
+        .toggle-slider:before {
+            position: absolute;
+            content: "";
+            height: 20px;
+            width: 20px;
+            left: 3px;
+            bottom: 3px;
+            background: white;
+            border-radius: 50%;
+            transition: 0.3s;
+        }
+        
+        .toggle input:checked + .toggle-slider {
+            background: linear-gradient(135deg, #667eea, #764ba2);
+        }
+        
+        .toggle input:checked + .toggle-slider:before {
+            transform: translateX(24px);
+        }
+        
+        /* Presets */
+        .presets {
+            display: flex;
+            gap: 10px;
+            flex-wrap: wrap;
+        }
+        
+        .preset-btn {
+            padding: 8px 16px;
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            border-radius: 20px;
+            background: transparent;
+            color: #e0e0e0;
+            cursor: pointer;
+            font-size: 0.9em;
+            transition: all 0.2s;
+        }
+        
+        .preset-btn:hover {
+            border-color: #667eea;
+            color: #667eea;
+        }
+        
+        .preset-btn.active {
+            background: linear-gradient(135deg, #667eea, #764ba2);
+            border-color: transparent;
+        }
+        
+        /* Analyze Button */
+        .analyze-btn {
+            width: 100%;
+            padding: 18px;
+            border: none;
+            border-radius: 12px;
+            background: linear-gradient(135deg, #667eea, #764ba2);
+            color: white;
+            font-size: 1.1em;
+            font-weight: 600;
+            cursor: pointer;
+            transition: transform 0.2s, box-shadow 0.2s;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 10px;
+        }
+        
+        .analyze-btn:hover:not(:disabled) {
+            transform: translateY(-2px);
+            box-shadow: 0 10px 30px rgba(102, 126, 234, 0.3);
+        }
+        
+        .analyze-btn:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+        
+        /* Progress */
+        .progress-section {
+            display: none;
+            margin-top: 20px;
+        }
+        
+        .progress-section.active {
+            display: block;
+        }
+        
+        .progress-bar {
+            height: 8px;
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 4px;
+            overflow: hidden;
+            margin-bottom: 15px;
+        }
+        
+        .progress-fill {
+            height: 100%;
+            background: linear-gradient(135deg, #667eea, #764ba2);
+            border-radius: 4px;
+            transition: width 0.3s;
+        }
+        
+        .progress-text {
+            text-align: center;
+            color: #888;
+            font-size: 0.9em;
+        }
+        
+        .progress-current {
+            color: #667eea;
+            font-weight: 500;
+        }
+        
+        /* Log */
+        .log {
+            background: rgba(0, 0, 0, 0.3);
+            border-radius: 8px;
+            padding: 15px;
+            max-height: 200px;
+            overflow-y: auto;
+            font-family: monospace;
+            font-size: 0.85em;
+            margin-top: 15px;
+        }
+        
+        .log-entry {
+            padding: 3px 0;
+            color: #aaa;
+        }
+        
+        .log-entry.success {
+            color: #38ef7d;
+        }
+        
+        .log-entry.error {
+            color: #ff6b6b;
+        }
+        
+        /* Results */
+        .results-section {
+            display: none;
+            margin-top: 20px;
+        }
+        
+        .results-section.active {
+            display: block;
+        }
+        
+        .results-stats {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 10px;
+            margin-bottom: 20px;
+        }
+        
+        .stat-box {
+            background: rgba(0, 0, 0, 0.2);
+            padding: 15px;
+            border-radius: 8px;
+            text-align: center;
+        }
+        
+        .stat-value {
+            font-size: 1.5em;
+            font-weight: bold;
+        }
+        
+        .stat-value.gold { color: #ffd700; }
+        .stat-value.silver { color: #c0c0c0; }
+        .stat-value.bronze { color: #cd7f32; }
+        .stat-value.discard { color: #666; }
+        
+        .stat-label {
+            font-size: 0.8em;
+            color: #888;
+            margin-top: 5px;
+        }
+        
+        .view-report-btn {
+            display: inline-block;
+            padding: 12px 24px;
+            background: rgba(102, 126, 234, 0.2);
+            border: 1px solid #667eea;
+            border-radius: 8px;
+            color: #667eea;
+            text-decoration: none;
+            font-weight: 500;
+            transition: all 0.2s;
+        }
+        
+        .view-report-btn:hover {
+            background: #667eea;
+            color: white;
+        }
+        
+        .results-buttons {
+            display: flex;
+            gap: 15px;
+            flex-wrap: wrap;
+            margin-top: 10px;
+        }
+        
+        .download-xml-btn {
+            display: inline-block;
+            padding: 12px 24px;
+            background: rgba(56, 239, 125, 0.2);
+            border: 1px solid #38ef7d;
+            border-radius: 8px;
+            color: #38ef7d;
+            text-decoration: none;
+            font-weight: 500;
+            transition: all 0.2s;
+        }
+        
+        .download-xml-btn:hover {
+            background: #38ef7d;
+            color: #1a1a2e;
+        }
+        
+        /* Reports List */
+        .reports-list {
+            margin-top: 20px;
+        }
+        
+        .report-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 10px 15px;
+            background: rgba(0, 0, 0, 0.2);
+            border-radius: 8px;
+            margin-bottom: 8px;
+        }
+        
+        .report-item a {
+            color: #667eea;
+            text-decoration: none;
+        }
+        
+        .report-item a:hover {
+            text-decoration: underline;
+        }
+        
+        .report-date {
+            color: #666;
+            font-size: 0.85em;
+        }
+        
+        /* Hidden file input */
+        #file-input {
+            display: none;
+        }
+        
+        /* Empty state */
+        .empty-state {
+            text-align: center;
+            padding: 30px;
+            color: #666;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>🎬 Video Analyzer</h1>
+            <p class="subtitle">Análisis inteligente de video para post-producción</p>
+        </header>
+        
+        <div class="main-grid">
+            <!-- Left Column - Videos -->
+            <div class="left-column">
+                <div class="card">
+                    <h2>📁 Videos</h2>
+                    
+                    <div class="drop-zone" id="drop-zone">
+                        <div class="drop-zone-icon">📤</div>
+                        <p>Arrastra videos aquí o haz clic para seleccionar</p>
+                        <p class="formats">MP4, MOV, AVI, MXF, MKV</p>
+                    </div>
+                    <input type="file" id="file-input" multiple accept=".mp4,.mov,.avi,.mxf,.mkv,.m4v">
+                    
+                    <div class="video-list" id="video-list">
+                        <div class="empty-state">No hay videos cargados</div>
+                    </div>
+                </div>
+                
+                <!-- Progress -->
+                <div class="card progress-section" id="progress-section">
+                    <h2>⚡ Analizando...</h2>
+                    <div class="progress-bar">
+                        <div class="progress-fill" id="progress-fill" style="width: 0%"></div>
+                    </div>
+                    <p class="progress-text">
+                        <span class="progress-current" id="progress-current">0</span> / 
+                        <span id="progress-total">0</span> videos
+                    </p>
+                    <div class="log" id="log"></div>
+                </div>
+                
+                <!-- Results -->
+                <div class="card results-section" id="results-section">
+                    <h2>📊 Resultados</h2>
+                    <div class="results-stats" id="results-stats"></div>
+                    <div class="results-buttons">
+                        <a href="#" class="view-report-btn" id="view-report-btn" target="_blank">
+                            📄 Ver Reporte HTML
+                        </a>
+                        <a href="#" class="download-xml-btn" id="download-xml-btn" download>
+                            🎬 Descargar XML Premiere
+                        </a>
+                    </div>
+                </div>
+                
+                <!-- Reports History -->
+                <div class="card">
+                    <h2>📋 Reportes Anteriores</h2>
+                    <div class="reports-list" id="reports-list">
+                        <div class="empty-state">No hay reportes</div>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Right Column - Config -->
+            <div class="right-column">
+                <div class="card">
+                    <h2>⚙️ Configuración</h2>
+                    
+                    <div class="config-section">
+                        <h3>Módulos de Análisis</h3>
+                        
+                        <div class="module">
+                            <div class="module-info">
+                                <span class="module-icon">🎯</span>
+                                <div>
+                                    <div class="module-name">Movimiento</div>
+                                    <div class="module-weight">Detecta paneos y movimientos</div>
+                                </div>
+                            </div>
+                            <label class="toggle">
+                                <input type="checkbox" id="mod-movimiento" checked>
+                                <span class="toggle-slider"></span>
+                            </label>
+                        </div>
+                        
+                        <div class="module">
+                            <div class="module-info">
+                                <span class="module-icon">📳</span>
+                                <div>
+                                    <div class="module-name">Estabilidad</div>
+                                    <div class="module-weight">Detecta temblor / shaky</div>
+                                </div>
+                            </div>
+                            <label class="toggle">
+                                <input type="checkbox" id="mod-estabilidad" checked>
+                                <span class="toggle-slider"></span>
+                            </label>
+                        </div>
+                        
+                        <div class="module">
+                            <div class="module-info">
+                                <span class="module-icon">📐</span>
+                                <div>
+                                    <div class="module-name">Composición</div>
+                                    <div class="module-weight">Regla de tercios, balance</div>
+                                </div>
+                            </div>
+                            <label class="toggle">
+                                <input type="checkbox" id="mod-composicion" checked>
+                                <span class="toggle-slider"></span>
+                            </label>
+                        </div>
+                        
+                        <div class="module">
+                            <div class="module-info">
+                                <span class="module-icon">💡</span>
+                                <div>
+                                    <div class="module-name">Iluminación</div>
+                                    <div class="module-weight">Exposición, contraste</div>
+                                </div>
+                            </div>
+                            <label class="toggle">
+                                <input type="checkbox" id="mod-iluminacion" checked>
+                                <span class="toggle-slider"></span>
+                            </label>
+                        </div>
+                        
+                        <div class="module">
+                            <div class="module-info">
+                                <span class="module-icon">🎨</span>
+                                <div>
+                                    <div class="module-name">Color</div>
+                                    <div class="module-weight">Saturación, balance</div>
+                                </div>
+                            </div>
+                            <label class="toggle">
+                                <input type="checkbox" id="mod-color" checked>
+                                <span class="toggle-slider"></span>
+                            </label>
+                        </div>
+                    </div>
+                    
+                    <div class="config-section">
+                        <h3>Presets</h3>
+                        <div class="presets">
+                            <button class="preset-btn active" data-preset="completo">Completo</button>
+                            <button class="preset-btn" data-preset="rapido">Rápido</button>
+                            <button class="preset-btn" data-preset="shaky">Solo Shaky</button>
+                            <button class="preset-btn" data-preset="visual">Solo Visual</button>
+                        </div>
+                    </div>
+                    
+                    <button class="analyze-btn" id="analyze-btn" disabled>
+                        🚀 Analizar Videos
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <script>
+        // Estado de la app
+        let videos = [];
+        let config = null;
+        let isAnalyzing = false;
+        let statusInterval = null;
+        
+        // Elementos DOM
+        const dropZone = document.getElementById('drop-zone');
+        const fileInput = document.getElementById('file-input');
+        const videoList = document.getElementById('video-list');
+        const analyzeBtn = document.getElementById('analyze-btn');
+        const progressSection = document.getElementById('progress-section');
+        const resultsSection = document.getElementById('results-section');
+        const progressFill = document.getElementById('progress-fill');
+        const progressCurrent = document.getElementById('progress-current');
+        const progressTotal = document.getElementById('progress-total');
+        const logEl = document.getElementById('log');
+        
+        // Inicializar
+        document.addEventListener('DOMContentLoaded', () => {
+            loadConfig();
+            loadVideos();
+            loadReports();
+        });
+        
+        // Cargar configuración
+        async function loadConfig() {
+            try {
+                const res = await fetch('/api/config');
+                config = await res.json();
+                updateConfigUI();
+            } catch (e) {
+                console.error('Error loading config:', e);
+            }
+        }
+        
+        // Actualizar UI de config
+        function updateConfigUI() {
+            if (!config) return;
+            
+            const modules = ['movimiento', 'estabilidad', 'composicion', 'iluminacion', 'color'];
+            modules.forEach(mod => {
+                const checkbox = document.getElementById(`mod-${mod}`);
+                if (checkbox && config.analisis[mod]) {
+                    checkbox.checked = config.analisis[mod].activado;
+                }
+            });
+        }
+        
+        // Obtener config desde UI
+        function getConfigFromUI() {
+            const baseConfig = config || getDefaultConfig();
+            
+            baseConfig.analisis.movimiento.activado = document.getElementById('mod-movimiento').checked;
+            baseConfig.analisis.estabilidad.activado = document.getElementById('mod-estabilidad').checked;
+            baseConfig.analisis.composicion.activado = document.getElementById('mod-composicion').checked;
+            baseConfig.analisis.iluminacion.activado = document.getElementById('mod-iluminacion').checked;
+            baseConfig.analisis.color.activado = document.getElementById('mod-color').checked;
+            
+            return baseConfig;
+        }
+        
+        function getDefaultConfig() {
+            return {
+                analisis: {
+                    movimiento: { activado: true, peso: 0.30 },
+                    estabilidad: { activado: true, peso: 0.25 },
+                    composicion: { activado: true, peso: 0.20 },
+                    iluminacion: { activado: true, peso: 0.15 },
+                    color: { activado: true, peso: 0.10 }
+                },
+                clasificacion: {
+                    gold_percentile: 80,
+                    silver_percentile: 55,
+                    bronze_percentile: 30,
+                    min_gold_score: 7.0,
+                    min_silver_score: 5.5,
+                    min_bronze_score: 4.0
+                },
+                rendimiento: {
+                    fps_analisis: 3,
+                    resolucion_ancho: 320,
+                    resolucion_alto: 180,
+                    ventana_segundos: 0.5
+                }
+            };
+        }
+        
+        // Presets
+        document.querySelectorAll('.preset-btn').forEach(btn => {
+            btn.addEventListener('click', () => {
+                document.querySelectorAll('.preset-btn').forEach(b => b.classList.remove('active'));
+                btn.classList.add('active');
+                
+                const preset = btn.dataset.preset;
+                applyPreset(preset);
+            });
+        });
+        
+        function applyPreset(preset) {
+            const checkboxes = {
+                movimiento: document.getElementById('mod-movimiento'),
+                estabilidad: document.getElementById('mod-estabilidad'),
+                composicion: document.getElementById('mod-composicion'),
+                iluminacion: document.getElementById('mod-iluminacion'),
+                color: document.getElementById('mod-color')
+            };
+            
+            switch(preset) {
+                case 'completo':
+                    Object.values(checkboxes).forEach(c => c.checked = true);
+                    break;
+                case 'rapido':
+                    checkboxes.movimiento.checked = true;
+                    checkboxes.estabilidad.checked = true;
+                    checkboxes.composicion.checked = false;
+                    checkboxes.iluminacion.checked = true;
+                    checkboxes.color.checked = false;
+                    break;
+                case 'shaky':
+                    Object.values(checkboxes).forEach(c => c.checked = false);
+                    checkboxes.estabilidad.checked = true;
+                    break;
+                case 'visual':
+                    checkboxes.movimiento.checked = false;
+                    checkboxes.estabilidad.checked = false;
+                    checkboxes.composicion.checked = true;
+                    checkboxes.iluminacion.checked = true;
+                    checkboxes.color.checked = true;
+                    break;
+            }
+        }
+        
+        // Cargar lista de videos
+        async function loadVideos() {
+            try {
+                const res = await fetch('/api/videos');
+                videos = await res.json();
+                renderVideoList();
+            } catch (e) {
+                console.error('Error loading videos:', e);
+            }
+        }
+        
+        // Renderizar lista de videos
+        function renderVideoList() {
+            if (videos.length === 0) {
+                videoList.innerHTML = '<div class="empty-state">No hay videos cargados</div>';
+                analyzeBtn.disabled = true;
+                return;
+            }
+            
+            videoList.innerHTML = videos.map(v => `
+                <div class="video-item">
+                    <div class="info">
+                        <span class="icon">🎬</span>
+                        <div>
+                            <div class="name">${v.name}</div>
+                            <div class="size">${v.size_mb} MB</div>
+                        </div>
+                    </div>
+                    <button class="delete" onclick="deleteVideo('${v.name}')">&times;</button>
+                </div>
+            `).join('');
+            
+            analyzeBtn.disabled = false;
+        }
+        
+        // Drag & Drop
+        dropZone.addEventListener('click', () => fileInput.click());
+        
+        dropZone.addEventListener('dragover', (e) => {
+            e.preventDefault();
+            dropZone.classList.add('dragover');
+        });
+        
+        dropZone.addEventListener('dragleave', () => {
+            dropZone.classList.remove('dragover');
+        });
+        
+        dropZone.addEventListener('drop', (e) => {
+            e.preventDefault();
+            dropZone.classList.remove('dragover');
+            handleFiles(e.dataTransfer.files);
+        });
+        
+        fileInput.addEventListener('change', (e) => {
+            handleFiles(e.target.files);
+        });
+        
+        // Subir archivos
+        async function handleFiles(files) {
+            for (const file of files) {
+                await uploadFile(file);
+            }
+            loadVideos();
+        }
+        
+        async function uploadFile(file) {
+            const formData = new FormData();
+            formData.append('file', file);
+            
+            try {
+                const res = await fetch('/api/upload', {
+                    method: 'POST',
+                    body: formData
+                });
+                
+                if (!res.ok) {
+                    const data = await res.json();
+                    alert(`Error: ${data.error}`);
+                }
+            } catch (e) {
+                console.error('Error uploading:', e);
+                alert('Error al subir archivo');
+            }
+        }
+        
+        // Eliminar video
+        async function deleteVideo(filename) {
+            try {
+                await fetch(`/api/delete/${filename}`, { method: 'DELETE' });
+                loadVideos();
+            } catch (e) {
+                console.error('Error deleting:', e);
+            }
+        }
+        
+        // Iniciar análisis
+        analyzeBtn.addEventListener('click', startAnalysis);
+        
+        async function startAnalysis() {
+            if (isAnalyzing) return;
+            
+            isAnalyzing = true;
+            analyzeBtn.disabled = true;
+            progressSection.classList.add('active');
+            resultsSection.classList.remove('active');
+            logEl.innerHTML = '';
+            
+            const currentConfig = getConfigFromUI();
+            
+            try {
+                const res = await fetch('/api/analyze', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ config: currentConfig })
+                });
+                
+                if (res.ok) {
+                    statusInterval = setInterval(checkStatus, 1000);
+                } else {
+                    const data = await res.json();
+                    alert(`Error: ${data.error}`);
+                    isAnalyzing = false;
+                    analyzeBtn.disabled = false;
+                }
+            } catch (e) {
+                console.error('Error starting analysis:', e);
+                isAnalyzing = false;
+                analyzeBtn.disabled = false;
+            }
+        }
+        
+        // Verificar estado del análisis
+        async function checkStatus() {
+            try {
+                const res = await fetch('/api/status');
+                const status = await res.json();
+                
+                progressFill.style.width = `${status.progress}%`;
+                progressCurrent.textContent = status.completed;
+                progressTotal.textContent = status.total_videos;
+                
+                // Actualizar log
+                logEl.innerHTML = status.log.map(entry => {
+                    let cls = '';
+                    if (entry.includes('✓') || entry.includes('✅')) cls = 'success';
+                    if (entry.includes('❌')) cls = 'error';
+                    return `<div class="log-entry ${cls}">${entry}</div>`;
+                }).join('');
+                logEl.scrollTop = logEl.scrollHeight;
+                
+                if (!status.running) {
+                    clearInterval(statusInterval);
+                    isAnalyzing = false;
+                    analyzeBtn.disabled = false;
+                    
+                    if (status.results) {
+                        showResults(status.results, status.xml_file);
+                    }
+                    
+                    loadReports();
+                }
+            } catch (e) {
+                console.error('Error checking status:', e);
+            }
+        }
+        
+        // Mostrar resultados
+        function showResults(stats, xmlFile) {
+            resultsSection.classList.add('active');
+            
+            const total = stats.total_duration;
+            const formatTime = (s) => {
+                if (s < 60) return `${Math.round(s)}s`;
+                return `${Math.floor(s/60)}m ${Math.round(s%60)}s`;
+            };
+            
+            document.getElementById('results-stats').innerHTML = `
+                <div class="stat-box">
+                    <div class="stat-value gold">${formatTime(stats.total_gold)}</div>
+                    <div class="stat-label">🥇 Oro (${total > 0 ? Math.round(stats.total_gold/total*100) : 0}%)</div>
+                </div>
+                <div class="stat-box">
+                    <div class="stat-value silver">${formatTime(stats.total_silver)}</div>
+                    <div class="stat-label">🥈 Plata (${total > 0 ? Math.round(stats.total_silver/total*100) : 0}%)</div>
+                </div>
+                <div class="stat-box">
+                    <div class="stat-value bronze">${formatTime(stats.total_bronze)}</div>
+                    <div class="stat-label">🥉 Bronce (${total > 0 ? Math.round(stats.total_bronze/total*100) : 0}%)</div>
+                </div>
+                <div class="stat-box">
+                    <div class="stat-value discard">${formatTime(stats.total_discard)}</div>
+                    <div class="stat-label">❌ Descartar (${total > 0 ? Math.round(stats.total_discard/total*100) : 0}%)</div>
+                </div>
+            `;
+            
+            // Update XML download button
+            if (xmlFile) {
+                document.getElementById('download-xml-btn').href = `/download/${xmlFile}`;
+            }
+        }
+        
+        // Cargar reportes anteriores
+        async function loadReports() {
+            try {
+                const res = await fetch('/api/reports');
+                const reports = await res.json();
+                
+                const xmlRes = await fetch('/api/xml-files');
+                const xmlFiles = await xmlRes.json();
+                
+                const reportsList = document.getElementById('reports-list');
+                
+                if (reports.length === 0) {
+                    reportsList.innerHTML = '<div class="empty-state">No hay reportes</div>';
+                    return;
+                }
+                
+                reportsList.innerHTML = reports.slice(0, 5).map(r => `
+                    <div class="report-item">
+                        <a href="/reports/${r.name}" target="_blank">📊 ${r.name}</a>
+                        <span class="report-date">${r.date}</span>
+                    </div>
+                `).join('');
+                
+                // Añadir XMLs
+                if (xmlFiles.length > 0) {
+                    reportsList.innerHTML += '<div style="margin-top:15px;padding-top:15px;border-top:1px solid rgba(255,255,255,0.1)"><strong style="color:#888;font-size:0.85em">ARCHIVOS PREMIERE:</strong></div>';
+                    reportsList.innerHTML += xmlFiles.slice(0, 3).map(x => `
+                        <div class="report-item">
+                            <a href="/download/${x.name}">🎬 ${x.name}</a>
+                            <span class="report-date">${x.date}</span>
+                        </div>
+                    `).join('');
+                }
+                
+                // Actualizar botones
+                if (reports.length > 0) {
+                    document.getElementById('view-report-btn').href = `/reports/${reports[0].name}`;
+                }
+                if (xmlFiles.length > 0) {
+                    document.getElementById('download-xml-btn').href = `/download/${xmlFiles[0].name}`;
+                }
+            } catch (e) {
+                console.error('Error loading reports:', e);
+            }
+        }
+    </script>
+</body>
+</html>
