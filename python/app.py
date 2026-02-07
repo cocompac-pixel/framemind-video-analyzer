@@ -78,6 +78,7 @@ else:
     PYTHON_DIR = _script_dir
 
 UPLOAD_FOLDER = BASE_DIR / 'videos_raw'
+VIDEOS_RAW_FOLDER = UPLOAD_FOLDER  # TASK-030: Fix - variable faltante
 OUTPUT_FOLDER = BASE_DIR / 'videos_analyzed'
 THUMBNAILS_FOLDER = BASE_DIR / 'thumbnails'
 PROJECTS_FOLDER = BASE_DIR / 'projects'
